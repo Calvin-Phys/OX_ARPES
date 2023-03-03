@@ -27,5 +27,5 @@ Supported Beamlines:
 ---
 Contact: Cheng Peng <cheng.peng@physics.ox.ac.uk>
 
-Group web: [ARPES at Oxford](www.arpes.org.uk)
+Group web: [ARPES at Oxford](http://www.arpes.org.uk)
 
