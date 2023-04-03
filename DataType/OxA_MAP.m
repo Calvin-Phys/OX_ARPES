@@ -112,7 +112,6 @@ classdef OxA_MAP < OxArpes_3D_Data
 
         end
 
-
         function KMAP = kconvert_nano(obj)
 
             % find k boundary

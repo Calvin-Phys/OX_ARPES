@@ -40,17 +40,17 @@ function DATA = load_Bessy_IBW(file_path)
     DATA.info.acquisition_mode = notes2{Index,2};
 
     DATA.info.workfunction = 4.4;
-    DATA.info.photon_energy = 122;
+%     DATA.info.photon_energy = 121;
 
     % remove spikes
-    if strcmp(DATA.info.acquisition_mode,'Fixed')
-        switch Ndim
-            case 2
-                DATA.value = filloutliers(DATA.value,'linear','mean',2);
-            case 3
-                DATA.value = filloutliers(DATA.value,'linear','mean',3);
-        end
-    end
+%     if strcmp(DATA.info.acquisition_mode,'Fixed')
+%         switch Ndim
+%             case 2
+%                 DATA.value = filloutliers(DATA.value,'linear','mean',2);
+%             case 3
+%                 DATA.value = filloutliers(DATA.value,'linear','mean',3);
+%         end
+%     end
 
 
 

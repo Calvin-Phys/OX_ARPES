@@ -57,9 +57,9 @@ function DATA = load_DLS_io5(file_path)
         y = h5read(file_path,'/entry1/analyser/angles');
 
         ZZ = h5read(file_path,'/entry1/analyser/energies');
-        HHVV = repmat(photon_energy',size(ZZ,1),1);
-        WW = repmat(workfunction',size(ZZ,1),1);
-        z = mean(ZZ - (HHVV - WW),2);
+        HHVV = repmat(x',size(ZZ,1),1);
+%         WW = repmat(workfunction',size(ZZ,1),1);
+        z = mean(ZZ - HHVV,2) + workfunction;
 
         DATA = OxA_KZ(x,y,z,value);
 %         DATA = DATA.set_contrast();
@@ -115,5 +115,17 @@ function DATA = load_DLS_io5(file_path)
     DATA.info.pass_energy = h5read(file_path,'/entry1/instrument/analyser/pass_energy');
     DATA.info.center_energy = h5read(file_path,'/entry1/instrument/analyser/kinetic_energy_center');
     DATA.info.temperature = h5read(file_path,'/entry1/sample/temperature');
+
+%     remove spikes
+    if strcmp(DATA.info.acquisition_mode,'Fixed')
+        switch ndims(value)
+            case 2
+%                 DATA.value = filloutliers(DATA.value,'linear','mean',2);
+                DATA.value(17,91) = 0;
+            case 3
+%                 DATA.value = filloutliers(DATA.value,'linear','mean',3);
+                DATA.value(:,17,91) = zeros(size(DATA.value,1),1);
+        end
+    end
 end
 

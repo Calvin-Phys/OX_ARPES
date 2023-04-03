@@ -48,7 +48,9 @@ classdef OxArpes_2D_Data
         function obj = set_contrast(obj)
             n_data = sort(obj.value(:));
             upbound = n_data(round(0.995*length(n_data)));
-            obj.value(obj.value>upbound) = upbound;
+
+%             upbound = prctile(obj.value(:), 99.5);
+            obj.value(obj.value > upbound) = upbound;
         end
 
         function NEW_DATA = truncate(obj,xmin,xmax,ymin,ymax)

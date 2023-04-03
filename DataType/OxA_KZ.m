@@ -91,11 +91,6 @@ classdef OxA_KZ < OxArpes_3D_Data
             KMAP.info = obj.info;
         end
 
-        function outputArg = method1(obj,inputArg)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            outputArg = obj.Property1 + inputArg;
-        end
     end
 end
 

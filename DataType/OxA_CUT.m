@@ -1,14 +1,16 @@
 classdef OxA_CUT < OxArpes_2D_Data
-    %OXA_CUT Summary of this class goes here
-    %   Detailed explanation goes here
+    % OxA_CUT: A class for handling 2D ARPES data - CUT.
+    % This class inherits from the OxArpes_2D_Data class and adds methods
+    % for processing ARPES data, such as converting to k-space, smoothing,
+    % and calculating second derivatives and curvature.
     
     properties
     end
     
     methods
         function obj = OxA_CUT(varargin)
-            %OXA_CUT Construct an instance of this class
-            %   Detailed explanation goes here
+            % OxA_CUT: Class constructor.
+            % Initializes the properties of the class with default values.
             obj@OxArpes_2D_Data(varargin{:});
 
             obj.name = 'CUT';
@@ -18,9 +20,15 @@ classdef OxA_CUT < OxArpes_2D_Data
             obj.y_unit = 'eV';
 
             obj.info.thetay_offset = 0;
+            obj.info.photon_energy = 21.2;
+            obj.info.workfunction = 4.5;
         end
 
         function KCUT = kconvert(obj)
+            % kconvert: Converts the theta values of ARPES data to k-space.
+            % Uses a simple formula to convert the theta values to k-space.
+            % Returns a new OxA_CUT object with k-space data.
+
             % electron mass = 9.1093837 × 10-31 kilograms
             % hbar = 6.582119569...×10−16 eV⋅s
             % k (A-1) = CONST * sqrt(Ek (eV)) * sin(theta)
@@ -56,7 +64,11 @@ classdef OxA_CUT < OxArpes_2D_Data
         end
         
         function SCUT = Gaussian_smoothen(obj,sig_x,sig_y)
-
+            % Gaussian_smoothen: Smoothens the ARPES data using a Gaussian filter.
+            % Applies a Gaussian filter with specified standard deviations
+            % sig_x and sig_y to smooth the data. Returns a new OxA_CUT object
+            % with smoothed data.
+            
             % sigma - standard deviation
             rad_x = ceil(3.5*sig_x);
             rad_y = ceil(3.5*sig_y);
@@ -208,13 +220,6 @@ classdef OxA_CUT < OxArpes_2D_Data
             D2y_CUT.value = D2y(1+w1:L+w1,1+w2:J+w2);
         end
 
-        
-
-        function outputArg = method1(obj,inputArg)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            outputArg = obj.Property1 + inputArg;
-        end
     end
 end
 
