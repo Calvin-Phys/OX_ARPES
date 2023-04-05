@@ -31,6 +31,9 @@ function loader_UI(varargin)
     f = waitbar(0, '');
     f.Children.Title.Interpreter = 'none';
 
+    % close the waitbar when exiting
+    cleanupObj = onCleanup(@() close(f));
+
     for i = 1:N
         % get file name and ext
         filename = file{i};
@@ -45,6 +48,10 @@ function loader_UI(varargin)
         if contains(basename,' ')
             basename = strrep(basename,' ','_');
         end
+        if all(ismember(basename(1), '0123456789'))
+            basename = ['A' basename];
+        end
+
 
         % Call the separate function to handle file extensions and loading functions
         data = load_data_by_ext(fullfile(path, filename), ext);
@@ -56,7 +63,7 @@ function loader_UI(varargin)
         end
     end
 
-    close(f)
+%     close(f)
 end
 
 function [file, path] = uigetfile_with_lastpath(lastPath)
@@ -88,6 +95,8 @@ function data = load_data_by_ext(filepath, ext)
             data = load_DLS_io5(filepath);
         case '.ibw'
             data = load_Bessy_IBW(filepath);
+        case '.fits'
+            data = load_ALS_Maestro_fits(filepath);
         otherwise
             warning(['Fail to load ' filepath '. Check data type.']);
             data = [];
