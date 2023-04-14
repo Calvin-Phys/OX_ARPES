@@ -40,7 +40,7 @@ function DATA = load_Bessy_IBW(file_path)
     DATA.info.acquisition_mode = notes2{Index,2};
 
     DATA.info.workfunction = 4.4;
-%     DATA.info.photon_energy = 121;
+    DATA.info.photon_energy = 0;
 
     % remove spikes
 %     if strcmp(DATA.info.acquisition_mode,'Fixed')

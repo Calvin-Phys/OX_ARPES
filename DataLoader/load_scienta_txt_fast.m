@@ -15,6 +15,10 @@ function CUT = load_scienta_txt_fast(file_path)
     x_line = lines{find(startsWith(lines, 'Dimension 2 scale='), 1)};
     x = sscanf(x_line(19:end), '%f')';
 
+    % Find the line starting with 'Dimension 2 scale=' and extract the x scale
+    hv_line = lines{find(startsWith(lines, 'Excitation Energy='), 1)};
+    hv = sscanf(hv_line(19:end), '%f');
+
     % Find the index of the line starting with '[Data', indicating the start of the data section
     data_start_idx = find(startsWith(lines, '[Data'), 1);
 
@@ -26,7 +30,11 @@ function CUT = load_scienta_txt_fast(file_path)
     end
 
     % Create an OxA_CUT object with the extracted data (x, y, value)
-    CUT = OxA_CUT(x, y, value);
+    CUT = OxA_CUT(x', y', value);
+    CUT.info.photon_energy = hv;
+    CUT.info.workfunction = 4.4;
+
+
 end
 
 % function CUT = load_scienta_txt_fast(file_path)
