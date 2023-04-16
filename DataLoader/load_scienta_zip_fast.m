@@ -2,14 +2,14 @@ function MAP = load_scienta_zip_fast(file_path)
     % Load 3D data from a Scienta zip file and return an OxA_MAP object
 
     % Unzip the input file into a temporary folder
-    [folder_path, viewer_path] = unzip_to_temp_folder(file_path);
+    folder_path = unzip_to_temp_folder(file_path);
 
     % Ensure the temporary folder is removed when the function exits
     % Create an onCleanup object to remove the temporary folder when the function exits
     cleanupObj = onCleanup(@() remove_temp_folder(folder_path));
 
     % Extract data headers from the 'viewer.ini' file
-    [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision] = extract_data_header(folder_path,viewer_path);
+    [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_mod] = extract_data_header(folder_path);
 
     % Read the data from the binary file
     value = read_data(bin_path, Precision);
@@ -19,20 +19,31 @@ function MAP = load_scienta_zip_fast(file_path)
 
     % Create an `OxA_MAP` object and set the contrast
     MAP = OxA_MAP(x, y, z, value);
+    MAP.info.photon_energy = hv;
+    MAP.info.workfunction = 4.5;
+    MAP.info.lens_mod = lm;
+    MAP.info.pass_energy = pe;
+    MAP.info.acquisition_mod = aqc_mod;
+
     MAP = MAP.set_contrast();
+    
 
 end
 
 % Additional functions
-function [folder_path, viewer_path] = unzip_to_temp_folder(file_path)
+function folder_path = unzip_to_temp_folder(file_path)
     [path, file, ext] = fileparts(file_path);
     folder_path = fullfile(path,[file '_tmp']);
-    viewer_path = fullfile(folder_path, 'viewer.ini');
+    % viewer_path = fullfile(folder_path, 'viewer.ini');
     unzip(file_path,folder_path);
 end
 
-function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision] = extract_data_header(folder_path,viewer_path)
+function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_mod] = extract_data_header(folder_path)
     % Add code to extract data header
+
+    % open `view.ini`
+    viewer_path = fullfile(folder_path, 'viewer.ini');
+
     fileID = fopen(viewer_path);
     tline = fgetl(fileID);
 
@@ -45,9 +56,14 @@ function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision] = extract_dat
     tline = fgetl(fileID);
     nx = str2num(tline(7:end));
 
-    while ~startsWith(tline,'path=')
+    while ~startsWith(tline,'name=')
         tline = fgetl(fileID);
     end
+    map_name = fullfile(folder_path, [tline(6:end) '.ini']);
+    tline = fgetl(fileID);
+%     while ~startsWith(tline,'path=')
+%         tline = fgetl(fileID);
+%     end
     bin_path = fullfile(folder_path, tline(6:end));
     tline = fgetl(fileID);
 
@@ -69,6 +85,7 @@ function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision] = extract_dat
 
     fclose(fileID);
 
+    % open bin .ini
     fileID = fopen([bin_path(1:end-3) 'ini']);
 
     tline = fgetl(fileID);
@@ -77,12 +94,33 @@ function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision] = extract_dat
     end
     nUnit = str2double(tline(14:end));
     fclose(fileID);
+
     if nUnit == 4
         Precision = 'single';
     elseif nUnit == 8
         Precision = 'double';
     end
 
+    % open map .ini
+    fileID = fopen(map_name);
+    tline = fgetl(fileID);
+
+    while ~startsWith(tline,'Lens Mode=')
+        tline = fgetl(fileID);
+    end
+    lm = tline(11:end);
+    tline = fgetl(fileID);
+    pe = str2double(tline(13:end));
+
+    while ~startsWith(tline,'Excitation Energy=')
+        tline = fgetl(fileID);
+    end
+    hv = str2double(tline(19:end));
+    tline = fgetl(fileID);
+    tline = fgetl(fileID);
+    aqc_mod = tline(18:end);
+    
+    fclose(fileID);
 end
 
 function value = read_data(bin_path, Precision)
