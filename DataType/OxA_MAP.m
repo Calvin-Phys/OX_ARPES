@@ -206,6 +206,24 @@ classdef OxA_MAP < OxArpes_3D_Data
 
         end
 
+        function KMAP = interpolate_x(obj)
+            NX = 3;
+
+            KMAP = obj;
+
+            x0 = obj.x(1);
+            x1 = obj.x(end);
+            xn = length(obj.x);
+            x_new = linspace(x0,x1,(xn-1)*NX +1);
+
+            [Yq,Xq,Zq] = meshgrid(obj.y,x_new,obj.z);
+
+            Vq = interp3(obj.y,obj.x,obj.z,obj.value,Yq,Xq,Zq,'cubic');
+
+            KMAP.x = x_new;
+            KMAP.value = Vq;
+        end
+
         function outputArg = method1(obj,inputArg)
             %METHOD1 Summary of this method goes here
             %   Detailed explanation goes here

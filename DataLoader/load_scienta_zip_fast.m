@@ -25,7 +25,7 @@ function MAP = load_scienta_zip_fast(file_path)
     MAP.info.pass_energy = pe;
     MAP.info.acquisition_mod = aqc_mod;
 
-    MAP = MAP.set_contrast();
+%     MAP = MAP.set_contrast();s
     
 
 end
