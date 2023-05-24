@@ -72,7 +72,7 @@ function [file, path] = uigetfile_with_lastpath(lastPath)
                               '*.hdf5', 'Elettra Nano (*.hdf5)'; ...
                               '*.h5', 'PSI ULTRA/ADRESS (*.h5)'; ...
                               '*.nxs', 'DLS io5 (*.nxs)'; ...
-                              '*.ibw', 'Bessy 1^3 (*.ibw)'; ...
+                              '*.ibw', 'Igor binary wave (*.ibw)'; ...
                               '*.mat', 'MAT-files (*.mat)'}, ...
                               'Select One or More Files', 'MultiSelect', 'on', lastPath);
 end
@@ -84,9 +84,9 @@ function data = load_data_by_ext(filepath, ext)
             evalin('base', append("load('", filepath, "');"));
             data = [];
         case '.txt'
-            data = load_scienta_txt_fast(filepath);
+            data = load_scienta_txt(filepath);
         case '.zip'
-            data = load_scienta_zip_fast(filepath);
+            data = load_scienta_zip(filepath);
         case '.hdf5'
             data = load_Elettra_Spectromicroscopy(filepath);
         case '.h5'
@@ -94,7 +94,7 @@ function data = load_data_by_ext(filepath, ext)
         case '.nxs'
             data = load_DLS_io5(filepath);
         case '.ibw'
-            data = load_Bessy_IBW(filepath);
+            data = load_scienta_IBW(filepath);
         case '.fits'
             data = load_ALS_Maestro_fits(filepath);
         otherwise

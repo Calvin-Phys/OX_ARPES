@@ -16,10 +16,8 @@ function DATA = load_DLS_io5(file_path)
         workfunction = 4.4979E-6 *photon_energy.^2 + 1.49105E-3 *photon_energy + 4.40416;
     elseif pass_energy == 20
         workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
-    elseif pass_energy == 10
-        workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
     else
-        workfunction = 4.5;
+        workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
     end
 
     if contains(title,'static readout')
@@ -66,18 +64,37 @@ function DATA = load_DLS_io5(file_path)
 
     % new KZ scan
     elseif contains(title,'scan energy') && ~contains(title,'scan energy_group')
-        value = flip(permute(value,[3,2,1]),1);
-        x = flip(h5read(file_path,'/entry1/analyser/energy'));
+        value = permute(value,[3,2,1]);
+        x = h5read(file_path,'/entry1/analyser/energy');
         y = h5read(file_path,'/entry1/analyser/angles');
 
         ZZ = h5read(file_path,'/entry1/analyser/energies');
         HHVV = repmat(photon_energy',size(ZZ,1),1);
         WW = repmat(workfunction',size(ZZ,1),1);
-%         WW = 0;
-        z = mean(ZZ - (HHVV - WW),2);
 
-        DATA = OxA_KZ(x,y,z,value);
-%         DATA = DATA.set_contrast();
+        %% interpolate
+        ZZ_mean_dz = mean(ZZ,2);
+        nz = length(ZZ_mean_dz);
+        P = polyfit(1:nz,ZZ_mean_dz,1);
+        dz = P(1);
+
+        % photon_energy
+        % workfunction
+        EEF = ZZ - (HHVV - WW);
+        EEF_min = min(EEF,[],"all");
+        EEF_max = max(EEF,[],"all");
+        EEF_new = EEF_min:dz:EEF_max;
+
+        [EEFF, YY] = meshgrid(EEF_new,y);
+
+        VALUE_NEW = zeros(length(x),length(y),length(EEF_new));
+        for i = 1:length(x)
+            VALUE_NEW(i,:,:) = interp2(EEF(:,i),y,squeeze(value(i,:,:)),EEFF,YY,'spline',0);
+        end
+        DATA = OxA_KZ(x,y,EEF_new,VALUE_NEW);
+        %         DATA = DATA.set_contrast();
+
+
     elseif contains(title,'scan say')
         x = flip(h5read(file_path,'/entry1/analyser/say'));
         value = h5read(file_path,'/entry1/analyser/analyser');

@@ -220,6 +220,13 @@ classdef OxA_CUT < OxArpes_2D_Data
             D2y_CUT.value = D2y(1+w1:L+w1,1+w2:J+w2);
         end
 
+        function EDC = getEDC(obj,x0,x1)
+            [~,nx0] = min(abs(obj.x-x0));
+            [~,nx1] = min(abs(obj.x-x1));
+            EDC = mean(obj.value(nx0:nx1,:),1);
+%             figure
+%             plot(obj.y,EDC);
+        end
     end
 end
 

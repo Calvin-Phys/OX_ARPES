@@ -21,8 +21,8 @@ Supported Beamlines:
 - Diamond Light Sourse io5 `DataLoader/load_DLS_io5.m`
 - Swiss Light Source ULTRA/ADRESS `DataLoader/load_PSI_ULTRA.m`
 - Elettra Spectromicroscopy `DataLoader/load_Elettra_Spectromicroscopy.m`
-- Beamlines with Scienta Omicron Analyser `DataLoader/load_scienta_txt_fast.m`, `DataLoader/load_scienta_zip_fast.m`
-- Bessy One-Square .ibw `DataLoader/load_Bessy_IBW.m`
+- Beamlines with Scienta Omicron Analyser `DataLoader/load_scienta_txt.m`, `DataLoader/load_scienta_zip.m`
+- Igor Binary Wave file .ibw `DataLoader/load_scienta_IBW.m`
 - ALS MAESTRO .fits `DataLoader/load_ALS_Maestro_fits.m`
 
 Usage / Getting Started:
