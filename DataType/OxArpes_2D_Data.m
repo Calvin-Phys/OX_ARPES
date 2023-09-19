@@ -32,17 +32,21 @@ classdef OxArpes_2D_Data
 
         end
 
-        function show(obj)
+        function ha1 = show(obj)
             h1 = figure('Name',obj.name);
             ha1 = axes('parent',h1);
             
             % imagesc meshc
             imagesc(ha1,obj.x,obj.y,obj.value');
-            xlabel(ha1,[obj.x_name ' [' obj.x_unit ']']);
-            ylabel(ha1,[obj.y_name ' [' obj.y_unit ']']);
+            xlabel(ha1,[obj.x_name ' (' obj.x_unit ')']);
+            ylabel(ha1,[obj.y_name ' (' obj.y_unit ')']);
             title(ha1,obj.name,'interpreter', 'none');
             set(ha1,'YDir','normal');
             colormap(ha1,flipud(gray));
+
+            if strcmp(obj.x_unit,obj.y_unit)
+                pbaspect([1 1 1]);
+            end
         end
         
         function obj = set_contrast(obj)
@@ -51,6 +55,12 @@ classdef OxArpes_2D_Data
 
 %             upbound = prctile(obj.value(:), 99.5);
             obj.value(obj.value > upbound) = upbound;
+        end
+
+        function NEW_DATA = remove_spikes(obj)
+            NEW_DATA = obj;
+            NEW_DATA.value = medfilt1(NEW_DATA.value,3,[],1);
+            NEW_DATA.value = medfilt1(NEW_DATA.value,3,[],2);
         end
 
         function NEW_DATA = truncate(obj,xmin,xmax,ymin,ymax)
@@ -65,7 +75,29 @@ classdef OxArpes_2D_Data
             NEW_DATA.y = NEW_DATA.y(nymin:nymax);
             NEW_DATA.value = NEW_DATA.value(nxmin:nxmax,nymin:nymax);
 
+        end
 
+        function NEW_DATA = truncate_idx(obj,nxmin,nxmax,nymin,nymax)
+            NEW_DATA = obj;
+
+            NEW_DATA.x = NEW_DATA.x(nxmin:nxmax);
+            NEW_DATA.y = NEW_DATA.y(nymin:nymax);
+            NEW_DATA.value = NEW_DATA.value(nxmin:nxmax,nymin:nymax);
+
+        end
+
+
+
+        function dx = get_dx(obj)
+            nx = length(obj.x);
+            P = polyfit(1:nx,obj.x,1);
+            dx = P(1);
+        end
+
+        function dy = get_dy(obj)
+            ny = length(obj.y);
+            P = polyfit(1:ny,obj.y,1);
+            dy = P(1);
         end
 
         function outputArg = method1(obj,inputArg)

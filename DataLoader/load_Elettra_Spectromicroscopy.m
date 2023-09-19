@@ -29,6 +29,14 @@ function DATA = load_Elettra_Spectromicroscopy(file_path)
 
         DATA = OxA_CUT(x,y,double(value));
 
+    elseif strcmp(data_type,'Spectrum')
+
+        x = Dim0_value(1) + (0:length(value)-1)*Dim0_value(2);
+
+        DATA = OxArpes_1D_Data(x,value);
+        DATA.x_name = 'Kinetic Energy';
+        DATA.x_unit = 'eV';
+
     end
 
     % ------------- add info

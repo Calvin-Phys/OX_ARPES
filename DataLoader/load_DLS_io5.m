@@ -12,13 +12,16 @@ function DATA = load_DLS_io5(file_path)
 
     photon_energy = h5read(file_path,'/entry1/instrument/monochromator/energy');
     pass_energy = h5read(file_path,'/entry1/instrument/analyser/pass_energy');
-    if pass_energy == 50
-        workfunction = 4.4979E-6 *photon_energy.^2 + 1.49105E-3 *photon_energy + 4.40416;
-    elseif pass_energy == 20
-        workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
-    else
-        workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
-    end
+%     if pass_energy == 50
+        
+%     elseif pass_energy == 20
+%         workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
+%     else
+%         workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
+%     end
+%     workfunction = 4.5 + 0 *photon_energy;
+
+    workfunction = -2.505295708E-10 *photon_energy.^4 +5.376936163E-8 *photon_energy.^3 +9.213495312E-9 *photon_energy.^2  - 0.000146349 *photon_energy +4.443810286;
 
     if contains(title,'static readout')
         x = h5read(file_path,'/entry1/analyser/angles');
@@ -65,8 +68,8 @@ function DATA = load_DLS_io5(file_path)
     % new KZ scan
     elseif contains(title,'scan energy') && ~contains(title,'scan energy_group')
         value = permute(value,[3,2,1]);
-        x = h5read(file_path,'/entry1/analyser/energy');
-        y = h5read(file_path,'/entry1/analyser/angles');
+        x = transpose(h5read(file_path,'/entry1/analyser/energy'));
+        y = transpose(h5read(file_path,'/entry1/analyser/angles'));
 
         ZZ = h5read(file_path,'/entry1/analyser/energies');
         HHVV = repmat(photon_energy',size(ZZ,1),1);
@@ -134,14 +137,16 @@ function DATA = load_DLS_io5(file_path)
     DATA.info.temperature = h5read(file_path,'/entry1/sample/temperature');
 
 %     remove spikes
-    if strcmp(DATA.info.acquisition_mode,'Fixed')
+    if strcmp(DATA.info.acquisition_mode,'Fixed') || strcmp(DATA.info.acquisition_mode,'Dither')
         switch ndims(value)
             case 2
-%                 DATA.value = filloutliers(DATA.value,'linear','mean',2);
-                DATA.value(17,91) = 0;
+                DATA.value = medfilt1(DATA.value,3,[],1);
+                DATA.value = medfilt1(DATA.value,3,[],2);
             case 3
+                DATA.value = medfilt1(DATA.value,3,[],2);
+                DATA.value = medfilt1(DATA.value,3,[],3);
 %                 DATA.value = filloutliers(DATA.value,'linear','mean',3);
-                DATA.value(:,17,91) = zeros(size(DATA.value,1),1);
+%                 DATA.value(:,17,91) = zeros(size(DATA.value,1),1);
         end
     end
 end

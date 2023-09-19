@@ -160,6 +160,52 @@ classdef OxArpes_3D_Data
             KMAP.value = Vq;
         end
 
+        function NEW_DATA = truncate(obj,xmin,xmax,ymin,ymax,zmin,zmax)
+            NEW_DATA = obj;
+            [~,nxmin] = min(abs(obj.x-xmin));
+            [~,nxmax] = min(abs(obj.x-xmax));
+
+            [~,nymin] = min(abs(obj.y-ymin));
+            [~,nymax] = min(abs(obj.y-ymax));
+
+            [~,nzmin] = min(abs(obj.z-zmin));
+            [~,nzmax] = min(abs(obj.z-zmax));
+
+            NEW_DATA.x = NEW_DATA.x(nxmin:nxmax);
+            NEW_DATA.y = NEW_DATA.y(nymin:nymax);
+            NEW_DATA.z = NEW_DATA.z(nzmin:nzmax);
+            NEW_DATA.value = NEW_DATA.value(nxmin:nxmax,nymin:nymax,nzmin:nzmax);
+
+        end
+
+        function NEW_DATA = truncate_idx(obj,nxmin,nxmax,nymin,nymax,nzmin,nzmax)
+            NEW_DATA = obj;
+
+            NEW_DATA.x = NEW_DATA.x(nxmin:nxmax);
+            NEW_DATA.y = NEW_DATA.y(nymin:nymax);
+            NEW_DATA.z = NEW_DATA.z(nzmin:nzmax);
+            NEW_DATA.value = NEW_DATA.value(nxmin:nxmax,nymin:nymax,nzmin:nzmax);
+
+        end
+
+        function dx = get_dx(obj)
+            nx = length(obj.x);
+            P = polyfit(1:nx,obj.x,1);
+            dx = P(1);
+        end
+
+        function dy = get_dy(obj)
+            ny = length(obj.y);
+            P = polyfit(1:ny,obj.y,1);
+            dy = P(1);
+        end
+
+        function dz = get_dz(obj)
+            nz = length(obj.z);
+            P = polyfit(1:nz,obj.z,1);
+            dz = P(1);
+        end
+
         function outputArg = method1(obj,inputArg)
             %METHOD1 Summary of this method goes here
             %   Detailed explanation goes here
