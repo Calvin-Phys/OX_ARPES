@@ -48,6 +48,26 @@ classdef OxArpes_2D_Data
                 pbaspect([1 1 1]);
             end
         end
+
+        function save_fig(obj,name)
+            h1 = figure('Name',obj.name,'visible', 'off');
+            ha1 = axes('parent',h1);
+            
+            % imagesc meshc
+            imagesc(ha1,obj.x,obj.y,obj.value');
+            xlabel(ha1,[obj.x_name ' (' obj.x_unit ')']);
+            ylabel(ha1,[obj.y_name ' (' obj.y_unit ')']);
+            title(ha1,obj.name,'interpreter', 'none');
+            set(ha1,'YDir','normal');
+            colormap(ha1,flipud(gray));
+
+            if strcmp(obj.x_unit,obj.y_unit)
+                pbaspect([1 1 1]);
+            end
+
+            saveas(h1,name);
+            close(h1);
+        end
         
         function obj = set_contrast(obj)
             n_data = sort(obj.value(:));
