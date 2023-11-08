@@ -2,6 +2,7 @@ function DATA = load_ALS_Maestro_fits(file_path)
 %LOAD_ALS_MAESTRO_FITS load .fits data from ALS Maestro beamline into
 %pre-defined objects
 %   Detailed explanation goes here
+% added support for nanoARPES
     
     info = fitsinfo(file_path);
 
@@ -12,9 +13,10 @@ function DATA = load_ALS_Maestro_fits(file_path)
 
     % Iterate through the keywords in the binary table of the FITS file
     % Extract values associated with keywords TDIM, TRVAL, and TDELT
+    num_col = 0;
     for ii = 1:size(keywords_binarytable,1)
         keyword = keywords_binarytable{ii,1};
-        if strcmp(keyword,'TDIM13')
+        if strncmp(keyword,'TDIM',4)
             tmp = sscanf(keywords_binarytable{ii,2},'(%d,%d)');
             nx = tmp(1);
             ny = tmp(2);
@@ -27,6 +29,8 @@ function DATA = load_ALS_Maestro_fits(file_path)
             dx = tmp(1);
             dy = tmp(2);
 
+            num_col = str2num(keyword(5:end));
+
             break
         end
     end
@@ -36,12 +40,12 @@ function DATA = load_ALS_Maestro_fits(file_path)
     cXX = ( x0 + dx*(0:(nx-1)) - centerPixel) * anglePerPixel;
     cYY = y0 + dy*(0:(ny-1));
 
-    NL = size(fitsdata{1,13},1);
+    NL = size(fitsdata{1,num_col},1);
     if NL == 1
-        VALUE = reshape(fitsdata{1,13},nx,ny);
+        VALUE = reshape(fitsdata{1,num_col},nx,ny);
     else
         LL = fitsdata{1,2}';
-        VALUE = reshape(fitsdata{1,13},NL,nx,ny);
+        VALUE = reshape(fitsdata{1,num_col},NL,nx,ny);
     end
 
     % check data type
@@ -55,7 +59,7 @@ function DATA = load_ALS_Maestro_fits(file_path)
     switch data_type
         case 'null' % cut
             DATA = OxA_CUT(cXX,cYY,VALUE);
-        case 'Slit Defl' % deflector map
+        case {'Slit Defl','Slit Defl.'} % deflector map
             DATA = OxA_MAP(LL,cXX,cYY,VALUE);
         case 'mono_eV' % photon energy scan
             DATA = OxA_KZ(LL,cXX,cYY,VALUE);
@@ -81,7 +85,7 @@ function DATA = load_ALS_Maestro_fits(file_path)
     switch data_type
         case 'null' % cut
             DATA.y = DATA.y - DATA.info.workfunction + DATA.info.photon_energy;
-        case 'Slit Defl' % deflector map
+        case {'Slit Defl','Slit Defl.'} % deflector map
             DATA.z = DATA.z - DATA.info.workfunction + DATA.info.photon_energy;
     end
 
