@@ -135,6 +135,15 @@ function DATA = load_DLS_io5(file_path)
     DATA.info.pass_energy = h5read(file_path,'/entry1/instrument/analyser/pass_energy');
     DATA.info.center_energy = h5read(file_path,'/entry1/instrument/analyser/kinetic_energy_center');
     DATA.info.temperature = h5read(file_path,'/entry1/sample/temperature');
+    DATA.info.exit_slit = h5read(file_path,'/entry1/instrument/monochromator/exit_slit_size');
+    
+    DATA.info.sample_X = h5read(file_path,'/entry1/instrument/manipulator/sax');
+    DATA.info.sample_Y = h5read(file_path,'/entry1/instrument/manipulator/say');
+    DATA.info.sample_Z = h5read(file_path,'/entry1/instrument/manipulator/saz');
+    DATA.info.sample_polar = h5read(file_path,'/entry1/instrument/manipulator/sapolar');
+    DATA.info.sample_tilt = h5read(file_path,'/entry1/instrument/manipulator/satilt');
+    DATA.info.sample_azimuth = h5read(file_path,'/entry1/instrument/manipulator/saazimuth');
+
 
 %     remove spikes
     if strcmp(DATA.info.acquisition_mode,'Fixed') || strcmp(DATA.info.acquisition_mode,'Dither')

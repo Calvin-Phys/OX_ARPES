@@ -38,7 +38,12 @@ classdef OxA_KZ < OxArpes_3D_Data
             else
                 V0 = varargin{1};
             end
-            workfunction = obj.info.workfunction;
+            if size(obj.info.workfunction,1) > 1
+                workfunction = mean(obj.info.workfunction);
+            else
+                workfunction = obj.info.workfunction;
+            end
+            
 
             thetay_offset = obj.y - obj.info.thetay_offset;
             hv_max = max(obj.x);
