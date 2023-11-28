@@ -40,7 +40,7 @@ classdef OxArpes_2D_Data
             imagesc(ha1,obj.x,obj.y,obj.value');
             xlabel(ha1,[obj.x_name ' (' obj.x_unit ')']);
             ylabel(ha1,[obj.y_name ' (' obj.y_unit ')']);
-            title(ha1,obj.name,'interpreter', 'none');
+            title(ha1,append(obj.name, ': ', num2str(round(obj.info.photon_energy,1)), 'eV ', obj.info.polarization),'interpreter', 'none');
             set(ha1,'YDir','normal');
             colormap(ha1,flipud(gray));
 
