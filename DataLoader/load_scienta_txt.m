@@ -42,6 +42,9 @@ function CUT = load_scienta_txt(file_path)
             x = [25 50 60 110 160 170];
             y = [4.3907 4.4095 4.4133 4.4667 4.5164 4.5193];
             CUT.info.workfunction = interp1(x,y,hv,'spline','extrap'); 
+        case {'Cassiopee'}
+            CUT.info.beamline = 'Soleil_Cassiopee';
+            CUT.info.workfunction = 4.21;
         otherwise
             CUT.info.workfunction = 4.44; 
     end
