@@ -24,6 +24,7 @@ Supported Beamlines:
 - Beamlines with Scienta Omicron Analyser `DataLoader/load_scienta_txt.m`, `DataLoader/load_scienta_zip.m`
 - Igor Binary Wave file .ibw `DataLoader/load_scienta_IBW.m`
 - ALS MAESTRO .fits `DataLoader/load_ALS_Maestro_fits.m`
+- Soleil Cassiopee (testing) .txt `DataLoader/test/load_Soleil_Cassiopee_folder.m`
 
 Usage / Getting Started:
 - This package is still under development.
