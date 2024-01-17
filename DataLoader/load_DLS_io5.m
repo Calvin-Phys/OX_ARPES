@@ -12,16 +12,18 @@ function DATA = load_DLS_io5(file_path)
 
     photon_energy = h5read(file_path,'/entry1/instrument/monochromator/energy');
     pass_energy = h5read(file_path,'/entry1/instrument/analyser/pass_energy');
-%     if pass_energy == 50
-        
-%     elseif pass_energy == 20
-%         workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
-%     else
-%         workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
-%     end
-%     workfunction = 4.5 + 0 *photon_energy;
 
-    workfunction = -2.505295708E-10 *photon_energy.^4 +5.376936163E-8 *photon_energy.^3 +9.213495312E-9 *photon_energy.^2  - 0.000146349 *photon_energy +4.443810286;
+    end_time = h5read(file_path,'/entry1/end_time');
+    t = datetime(end_time,'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS''Z');
+
+    % the work function can change after certain period of time
+    if year(t)<2023
+    % 2022 11
+        workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
+    else
+    % 2023
+        workfunction = -2.505295708E-10 *photon_energy.^4 +5.376936163E-8 *photon_energy.^3 +9.213495312E-9 *photon_energy.^2  - 0.000146349 *photon_energy +4.443810286;
+    end
 
     if contains(title,'static readout')
         x = h5read(file_path,'/entry1/analyser/angles');
