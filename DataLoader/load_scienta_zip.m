@@ -27,7 +27,12 @@ function MAP = load_scienta_zip(file_path)
             x = [25 50 60 110 160 170];
             y = [4.3907 4.4095 4.4133 4.4667 4.5164 4.5193];
             MAP.info.workfunction = interp1(x,y,hv,'spline','extrap'); 
-
+        case {'Cassiopee'}
+            MAP.info.beamline = 'Soleil_Cassiopee';
+            MAP.info.workfunction = 4.21;
+        case {'SLS-SIS'}
+            MAP.info.beamline = 'PSI_Ultra';
+            MAP.info.workfunction = 4.454;
         otherwise
             MAP.info.workfunction = 4.44; 
     end

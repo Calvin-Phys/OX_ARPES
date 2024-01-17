@@ -45,6 +45,9 @@ function CUT = load_scienta_txt(file_path)
         case {'Cassiopee'}
             CUT.info.beamline = 'Soleil_Cassiopee';
             CUT.info.workfunction = 4.21;
+        case {'SLS-SIS'}
+            CUT.info.beamline = 'PSI_Ultra';
+            CUT.info.workfunction = 4.454;
         otherwise
             CUT.info.workfunction = 4.44; 
     end
