@@ -1,5 +1,5 @@
 % Load log data into a table
-log_table = NiGaablog;
+log_table = PSIlog;
 items = log_table.Properties.VariableNames; % Get variable names from the table
 v_num = size(log_table,1); % Number of variables (rows)
 p_num = size(log_table,2); % Number of properties (columns)
