@@ -84,7 +84,13 @@ function data = load_data_by_ext(filepath, ext)
             evalin('base', append("load('", filepath, "');"));
             data = [];
         case '.txt'
-            data = load_scienta_txt(filepath);
+            if endsWith(filepath, '_ROI1_.txt')
+                data = load_Soleil_Cassiopee(filepath);
+            elseif endsWith(filepath, '_i.txt')
+                data = load_Soleil_Cassiopee_folder(filepath);
+            else
+                data = load_scienta_txt(filepath);
+            end
         case '.zip'
             data = load_scienta_zip(filepath);
         case '.hdf5'
