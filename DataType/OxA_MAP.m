@@ -1,4 +1,4 @@
-classdef OxA_MAP < OxArpes_3D_Data
+ classdef OxA_MAP < OxArpes_3D_Data
     %OXA_MAP Summary of this class goes here
     %   Detailed explanation goes here
     
@@ -32,8 +32,6 @@ classdef OxA_MAP < OxArpes_3D_Data
             % Kx = CONST * sqrt(Ek) .* cosd(Y0) .* sind(X0);
             % Ky = CONST * sqrt(Ek) .* sind(Y0);
         
-            
-        
             % Theta offset
             y_offset = obj.y - obj.info.thetay_offset;
             x_offset = obj.x - obj.info.thetax_offset;
@@ -53,7 +51,7 @@ classdef OxA_MAP < OxArpes_3D_Data
         
             % Calculate Kx, Ky boundaries
             common_term = CONST * sqrt(energy_min);
-            if thetax_max > 0 && thetax_min < 0 && thetay_max > 0 && thetay_min < 0 % Common case
+            if thetax_max >= 0 && thetax_min <= 0 && thetay_max >= 0 && thetay_min <= 0 % Common case
         
                 if obj.info.azimuth_offset == 0 % no rotation
                     kx_max = common_term * sind(thetax_max);
