@@ -19,7 +19,11 @@ function DATA = load_scienta_IBW(file_path)
             data.value = buffer.y';
             data.x = buffer.x0(2)+((1:XSize)-1)*buffer.dx(2);
             data.y = buffer.x0(1)+((1:YSize)-1)*buffer.dx(1);
-%             data.value = filloutliers(data.value,'center','mean',1);
+
+            % remove spikes
+            data.value = medfilt1(data.value,2,[],1);
+            data.value = medfilt1(data.value,2,[],2);
+
             DATA = OxA_CUT(data);
         case 3
             DataSize = size(buffer.y);
@@ -30,7 +34,10 @@ function DATA = load_scienta_IBW(file_path)
             data.x = buffer.x0(3)+((1:XSize)-1)*buffer.dx(3);
             data.y = buffer.x0(2)+((1:YSize)-1)*buffer.dx(2);
             data.z = buffer.x0(1)+((1:ZSize)-1)*buffer.dx(1);
-%             data.value = filloutliers(data.value,'linear','mean',2);
+
+            % remove spikes
+            data.value = medfilt1(data.value,2,[],2);
+            data.value = medfilt1(data.value,2,[],3);
 
             if any(contains(notes2(:,2),'CIS')) % KZ
                 
@@ -41,7 +48,7 @@ function DATA = load_scienta_IBW(file_path)
                 P = polyfit(1:nz,data.z,1);
                 dz = P(1);
 
-                % interpolate
+                % interpolate (workfunction at MAXIV)
                 x = [25 50 60 110 160 170];
                 y = [4.3907 4.4095 4.4133 4.4667 4.5164 4.5193];
 
@@ -59,7 +66,7 @@ function DATA = load_scienta_IBW(file_path)
                 data.value = VALUE_NEW;
                 data.z = EEF_new;
                 DATA = OxA_KZ(data);
-            else
+            else % map
                 DATA = OxA_MAP(data);
             end
     end
@@ -76,12 +83,16 @@ function DATA = load_scienta_IBW(file_path)
     DATA.info.acquisition_mode = notes2{Index,2};
     Index = contains(notes2(:,1),'Location');
     bmln = notes2{Index,2};
+    DATA.info.beamline = bmln;
+
     switch bmln
         case {'MAXIV','Bloch'}
             DATA.info.beamline = 'MAXIV_Bloch';
             x = [25 50 60 110 160 170];
             y = [4.3907 4.4095 4.4133 4.4667 4.5164 4.5193];
             DATA.info.workfunction = interp1(x,y,DATA.info.photon_energy,'spline','extrap'); 
+        case {'1square'}
+            DATA.info.workfunction = 4.5;
         otherwise
             DATA.info.workfunction = 4.44; 
     end
