@@ -31,21 +31,32 @@ function DATA = load_Soleil_Cassiopee_folder(file)
 
     Cuts = {};
     theta_list = [];
+    hv_list = [];
     value = [];
     for i=1:Num_Cuts
         Cuts{i} = load_Soleil_Cassiopee(fullfile(filepath,[name_base '_' num2str(i) '_' name_suffix1 '_' ext]));
 
         theta_list(i) = Cuts{i}.info.sample_theta;
+        hv_list(i) = Cuts{i}.info.photon_energy;
     
         value = cat(3,value,Cuts{i}.value);
     end
     
     % combine cuts into map
-    
-    DATA = OxA_MAP(theta_list,Cuts{1}.x,Cuts{1}.y,permute(value,[3 1 2]));
-    DATA.info = Cuts{1}.info;
-    DATA.info.azimuth_offset = 0;
-    DATA.info.sample_theta = theta_list;
+    if all(theta_list==theta_list(1))
+        E_EF = Cuts{1}.y - hv_list(1) + Cuts{1}.info.workfunction;
+        DATA = OxA_KZ(hv_list,Cuts{1}.x,E_EF,permute(value,[3 1 2]));
+        DATA.info = Cuts{1}.info;
+        DATA.info.azimuth_offset = 0;
+        DATA.info.photon_energy = theta_list;
+    else
+        DATA = OxA_MAP(theta_list,Cuts{1}.x,Cuts{1}.y,permute(value,[3 1 2]));
+        DATA.info = Cuts{1}.info;
+        DATA.info.azimuth_offset = 0;
+        DATA.info.sample_theta = theta_list;
+    end
+
+
     
 
 end

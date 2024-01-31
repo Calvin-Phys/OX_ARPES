@@ -94,5 +94,9 @@ function CUT = load_Soleil_Cassiopee(file_path)
             CUT.info.polarization = 'CR';
     end
 
+    % remove spikes
+    CUT.value = medfilt1(CUT.value,2,[],1);
+    CUT.value = medfilt1(CUT.value,2,[],2);
+
 
 end
