@@ -36,7 +36,7 @@ function CUT = load_Soleil_Cassiopee(file_path)
     % Create an OxA_CUT object with the extracted data (x, y, value)
     CUT = OxA_CUT(x', y', value);
     CUT.info.photon_energy = hv;
-    CUT.info.workfunction = 4.21; 
+    CUT.info.workfunction = 4.45; 
 %     switch bmln
 %         case {'MAXIV','Bloch'}
 %             CUT.info.beamline = 'MAXIV_Bloch';
