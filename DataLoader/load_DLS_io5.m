@@ -112,7 +112,7 @@ function DATA = load_DLS_io5(file_path)
         DATA = OxArpes_1D_Data(x,value);
         DATA.x_name = 'salong';
         DATA.x_unit = 'mm';
-    elseif contains(title,'scan sax') && contains(title,'saz')
+    elseif (contains(title,'scan sax') && contains(title,'saz'))
         x = mean(flip(h5read(file_path,'/entry1/analyser/sax')),1)';
         y = mean(h5read(file_path,'/entry1/analyser/saz'),2);
         z = mean(h5read(file_path,'/entry1/analyser/energies'),[2 3]);
@@ -125,6 +125,35 @@ function DATA = load_DLS_io5(file_path)
         DATA.y_unit = 'mm';
         DATA.z_name = 'kinetic Energy';
         DATA.z_unit = 'eV';
+
+        % save 4D data
+        DATA_4D.x = x;
+        DATA_4D.y = y;
+        DATA_4D.z = z;
+        DATA_4D.k = h5read(file_path,'/entry1/analyser/angles');
+        DATA_4D.value = permute(h5read(file_path,'/entry1/analyser/data'),[4 3 2 1]);
+        assignin('base',append('DATA_4D_',string(t,'HH_mm_ss')),DATA_4D);
+    elseif (contains(title,'scan saz') && contains(title,'sax'))
+        x = mean(flip(h5read(file_path,'/entry1/analyser/sax')),2)';
+        y = mean(h5read(file_path,'/entry1/analyser/saz'),1);
+        z = mean(h5read(file_path,'/entry1/analyser/energies'),[2 3]);
+        value = squeeze(sum(h5read(file_path,'/entry1/analyser/data'),2));
+        value = permute(value,[3,2,1]);
+        DATA = OxA_RSImage(x,y,z,value);
+        DATA.x_name = 'sax';
+        DATA.x_unit = 'mm';
+        DATA.y_name = 'saz';
+        DATA.y_unit = 'mm';
+        DATA.z_name = 'kinetic Energy';
+        DATA.z_unit = 'eV';
+
+        % save 4D data
+        DATA_4D.x = x;
+        DATA_4D.y = y;
+        DATA_4D.z = z;
+        DATA_4D.k = h5read(file_path,'/entry1/analyser/angles');
+        DATA_4D.value = permute(h5read(file_path,'/entry1/analyser/data'),[3 4 2 1]);
+        assignin('base',append('DATA_4D_',string(t,'HH_mm_ss')),DATA_4D);
     else
         DATA = [];
     end
