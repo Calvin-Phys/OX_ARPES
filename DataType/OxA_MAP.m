@@ -82,7 +82,25 @@
                 end
             else % Special case
                 % Calculate Kx, Ky boundaries for the special case
-                % (omitted for brevity)
+                
+                if obj.info.azimuth_offset == 0 % no rotation
+                    CRNR_D = [thetax_min, thetax_min, thetax_max, thetax_max; ...
+                              thetay_min, thetay_max, thetay_max, thetay_min];
+                    CRNR_K = common_term * [ cosd(CRNR_D(2,:)) .* sind(CRNR_D(1,:)); ...
+                                             sind(CRNR_D(2,:))];
+                    CRNR_KR = [azimuth_cos, azimuth_sin; ...
+                               -azimuth_sin,  azimuth_cos] * CRNR_K;
+        
+                    kx_max = max(CRNR_KR(1,:),[],"all");
+                    kx_min = min(CRNR_KR(1,:),[],"all");
+                    ky_max = max(CRNR_KR(2,:),[],"all");
+                    ky_min = min(CRNR_KR(2,:),[],"all");
+        
+                    kxn = length(x_offset)*2;
+                    kyn = length(y_offset);
+                else
+                    % (omitted for brevity)
+                end
             end
         
             % Create Kx, Ky grids

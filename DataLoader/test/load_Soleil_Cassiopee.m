@@ -11,6 +11,9 @@ function CUT = load_Soleil_Cassiopee(file_path)
     y_line = lines{find(startsWith(lines, 'Dimension 1 scale='), 1)};
     y = sscanf(y_line(19:end), '%f')';
 
+    Py = polyfit(1:length(y),y,1);
+    y_new = (1:length(y))*Py(1) + Py(2);
+
     % Find the line starting with 'Dimension 2 scale=' and extract the x scale
     x_line = lines{find(startsWith(lines, 'Dimension 2 scale='), 1)};
     x = sscanf(x_line(19:end), '%f')';
@@ -34,7 +37,7 @@ function CUT = load_Soleil_Cassiopee(file_path)
     end
 
     % Create an OxA_CUT object with the extracted data (x, y, value)
-    CUT = OxA_CUT(x', y', value);
+    CUT = OxA_CUT(x', y_new', value);
     CUT.info.photon_energy = hv;
     CUT.info.workfunction = 4.45; 
 %     switch bmln

@@ -153,6 +153,8 @@ function DATA = load_DLS_io5(file_path)
         DATA_4D.z = z;
         DATA_4D.k = h5read(file_path,'/entry1/analyser/angles');
         DATA_4D.value = permute(h5read(file_path,'/entry1/analyser/data'),[3 4 2 1]);
+        DATA_4D.value = medfilt1(DATA_4D.value,5,[],3);
+        DATA_4D.value = medfilt1(DATA_4D.value,5,[],4);
         assignin('base',append('DATA_4D_',string(t,'HH_mm_ss')),DATA_4D);
     else
         DATA = [];

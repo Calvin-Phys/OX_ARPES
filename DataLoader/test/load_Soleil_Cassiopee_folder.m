@@ -57,6 +57,8 @@ function DATA = load_Soleil_Cassiopee_folder(file)
     else
         DATA = OxA_MAP(1:Num_Cuts,Cuts{1}.x,Cuts{1}.y,permute(value,[3 1 2]));
         DATA.info = Cuts{1}.info;
+        DATA.x_name = 'Index';
+        DATA.x_unit = 'cut';
     end
 
 
