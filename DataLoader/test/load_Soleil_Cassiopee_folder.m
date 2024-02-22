@@ -48,6 +48,11 @@ function DATA = load_Soleil_Cassiopee_folder(file)
         DATA.info = Cuts{1}.info;
         DATA.info.azimuth_offset = 0;
         DATA.info.sample_theta = theta_list;
+
+        x = [45 75 90 95 111 120 130 141 150 170 ];
+        y = [4.2348 4.5356 4.7295 4.7785 4.6109 4.68 4.7803 4.9464 5.0237 5.279];
+        DATA.info.workfunction = interp1(x,y,hv_list(1),'spline','extrap'); 
+
     elseif ~all(hv_list==hv_list(1))
         E_EF = Cuts{1}.y - hv_list(1) + Cuts{1}.info.workfunction;
         DATA = OxA_KZ(hv_list,Cuts{1}.x,E_EF,permute(value,[3 1 2]));
@@ -60,8 +65,5 @@ function DATA = load_Soleil_Cassiopee_folder(file)
         DATA.x_name = 'Index';
         DATA.x_unit = 'cut';
     end
-
-
-    
 
 end
