@@ -14,10 +14,18 @@ function DATA = load_DLS_io5(file_path)
     pass_energy = h5read(file_path,'/entry1/instrument/analyser/pass_energy');
 
     end_time = h5read(file_path,'/entry1/end_time');
-    t = datetime(end_time,'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS''Z');
+    try
+        t = datetime(end_time,'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS''Z');
+    catch
+        t = datetime(end_time,'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS''+01:00');
+    end
 
     % the work function can change after certain period of time
-    if year(t)<2023
+    if year(t) <= 2020
+        x = [120 144 176 200];
+        y = [0.5791 0.4390 0.1696 -0.0296] + 4.5;
+        workfunction = interp1(x,y,photon_energy,'spline','extrap');
+    elseif year(t)<2023
     % 2022 11
         workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
     else
@@ -165,7 +173,10 @@ function DATA = load_DLS_io5(file_path)
     DATA.info.photon_energy = h5read(file_path,'/entry1/instrument/monochromator/energy');
     DATA.info.polarization = h5read(file_path,'/entry1/instrument/insertion_device/beam/final_polarisation_label');
     DATA.info.acquisition_mode = h5read(file_path,'/entry1/instrument/analyser/acquisition_mode');
-    DATA.info.acquire_time = h5read(file_path,'/entry1/instrument/analyser/acquire_time');
+    try
+        DATA.info.acquire_time = h5read(file_path,'/entry1/instrument/analyser/acquire_time');
+    catch
+    end
     DATA.info.pass_energy = h5read(file_path,'/entry1/instrument/analyser/pass_energy');
     DATA.info.center_energy = h5read(file_path,'/entry1/instrument/analyser/kinetic_energy_center');
     DATA.info.temperature = h5read(file_path,'/entry1/sample/temperature');
