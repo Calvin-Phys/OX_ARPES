@@ -96,6 +96,55 @@ classdef OxA_KZ < OxArpes_3D_Data
             KMAP.info = obj.info;
         end
 
+        function KMAP = kconvert_type2(obj,varargin)
+        
+            % electron mass = 9.1093837 × 10-31 kilograms
+            % hbar = 6.582119569...×10−16 eV⋅s
+            % k (A-1) = CONST * sqrt(Ek (eV)) * sin(theta)
+            CONST = 0.512316722;
+
+            if size(obj.info.workfunction,1) > 1
+                workfunction = mean(obj.info.workfunction);
+            else
+                workfunction = obj.info.workfunction;
+            end
+
+            thetay_offset = obj.y - obj.info.thetay_offset;
+            hv_max = max(obj.x);
+            hv_min = min(obj.x);
+            thetay_max = max(thetay_offset);
+            thetay_min = min(thetay_offset);
+            energy_min = min(obj.z);
+            energy_max = max(obj.z);
+
+            k_max = CONST * sqrt(hv_max + energy_min - workfunction) * sind(thetay_max);
+            k_min = CONST * sqrt(hv_max + energy_min - workfunction) * sind(thetay_min);
+            
+            kn = length(thetay_offset);
+            ky = linspace(k_min,k_max,kn);
+            [E_EF,KY] = meshgrid(obj.z,ky);
+
+            tic
+            data_new = zeros(length(obj.x),kn,length(obj.z));
+            for i = 1:length(obj.x)
+                hv = obj.x(i);
+                theta_new = asind(KY/CONST./sqrt(E_EF + hv - workfunction));
+                data_new(i,:,:) = interp2(obj.z,thetay_offset,squeeze(obj.value(i,:,:)),E_EF,theta_new,'spline',0);
+            end
+            data_new(data_new<0) = 0;
+            toc
+
+            KMAP = OxA_KZ(obj.x,ky,obj.z,data_new);
+            KMAP.x_name = 'Photon Energy';
+            KMAP.x_unit = 'eV';
+            KMAP.y_name = '{\it k}_y';
+            KMAP.y_unit = 'Å^{-1}';
+            KMAP.z_name = '{\it E}-{\it E}_F';
+            KMAP.z_unit = 'eV';
+            KMAP.name = [obj.name '_khv'];
+            KMAP.info = obj.info;
+        end
+
     end
 end
 
