@@ -7,7 +7,15 @@ function DATA = load_Soleil_Cassiopee_folder(file)
     allNames = { allFiles.name };
 
     % remove . and ..
-    name_list1 = allNames(3:end);
+    name_list0 = allNames(3:end);
+
+    name_list1 = {};
+    for i=1:length(name_list0)
+        if endsWith(name_list0(i),'.txt')
+            name_list1(end+1) = name_list0(i);
+        end
+    end
+
 
     for i=1:length(name_list1)
         name_list1(i) = erase(name_list1(i),'.txt'); 
