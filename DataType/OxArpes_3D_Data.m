@@ -40,6 +40,13 @@ classdef OxArpes_3D_Data
 
         end
 
+        function VolumeViewer(obj)
+            xx = (max(obj.x)-min(obj.x))/length(obj.x);
+            yy = (max(obj.y)-min(obj.y))/length(obj.y);
+            zz = (max(obj.z)-min(obj.z))/length(obj.z);
+            volumeViewer(obj.value,ScaleFactors=[xx yy zz]);
+        end
+
         function obj = set_contrast(obj)
             n_data = sort(obj.value(:));
             upbound = n_data(round(0.995*length(n_data)));
