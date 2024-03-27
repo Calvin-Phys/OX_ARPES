@@ -14,6 +14,10 @@ function DATA = load_DLS_io5(file_path)
     pass_energy = h5read(file_path,'/entry1/instrument/analyser/pass_energy');
 
     end_time = h5read(file_path,'/entry1/end_time');
+    if isempty(end_time)
+        end_time = h5read(file_path,'/entry1/start_time');
+    end
+
     try
         t = datetime(end_time,'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS''Z');
     catch
@@ -28,9 +32,17 @@ function DATA = load_DLS_io5(file_path)
     elseif year(t)<2023
     % 2022 11
         workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
-    else
+    elseif year(t)<2024
     % 2023
         workfunction = -2.505295708E-10 *photon_energy.^4 +5.376936163E-8 *photon_energy.^3 +9.213495312E-9 *photon_energy.^2  - 0.000146349 *photon_energy +4.443810286;
+    else
+        % 2024Feb
+        x = [54 60 90 120 150 180 200];
+        y = 4.5 -[0.0847 0.0889 0.0927 0.1079 0.1014 0.1106 0.1068];
+        % x = [42 60 90 120 150 180 201];
+        % y = 4.5 - [0.0581 0.0585 0.0643 0.0559 0.0313 0.0176 0.0126];
+        workfunction = interp1(x,y,photon_energy,'makima','extrap');
+        % workfunction = 4.5 + 0.*photon_energy;
     end
 
     if contains(title,'static readout')
@@ -189,6 +201,9 @@ function DATA = load_DLS_io5(file_path)
     DATA.info.sample_tilt = h5read(file_path,'/entry1/instrument/manipulator/satilt');
     DATA.info.sample_azimuth = h5read(file_path,'/entry1/instrument/manipulator/saazimuth');
 
+    DATA.info.time_measured = t;
+    DATA.info.time_loaded = datetime("now");
+    DATA.info.beamline = 'DLS_i05_HR';
 
 %     remove spikes
     if strcmp(DATA.info.acquisition_mode,'Fixed') || strcmp(DATA.info.acquisition_mode,'Dither')
