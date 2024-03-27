@@ -20,6 +20,7 @@ classdef OxA_KZ < OxArpes_3D_Data
             obj.z_unit = 'eV';
 
             obj.info.thetay_offset = 0;
+            obj.info.inner_energy = 15;
         end
         
         function KMAP = kconvert(obj,varargin)
@@ -29,15 +30,23 @@ classdef OxA_KZ < OxArpes_3D_Data
             % k (A-1) = CONST * sqrt(Ek (eV)) * sin(theta)
             CONST = 0.512316722;
             if isempty(varargin)
-                prompt = {'Enter Inner Energy [eV]:'};
-                dlgtitle = 'Inner Energy';
-                definput = {'15'};
-                dims = [1 35];
-                answer = inputdlg(prompt,dlgtitle,dims,definput);
-                V0 = str2num(answer{1});
+                % prompt = {'Enter Inner Energy [eV]:'};
+                % dlgtitle = 'Inner Energy';
+                % definput = {'15'};
+                % dims = [1 35];
+                % answer = inputdlg(prompt,dlgtitle,dims,definput);
+                % V0 = str2num(answer{1});
+                if isfield(obj.info,'inner_energy')
+                    V0 = obj.info.inner_energy;
+                else
+                    warning('Please check the Inner Energy of the data. Now using 15 eV as default.')
+                    obj.info.inner_energy = 15;
+                    V0 = 15;
+                end
             else
                 V0 = varargin{1};
             end
+
             if size(obj.info.workfunction,1) > 1
                 workfunction = mean(obj.info.workfunction);
             else
