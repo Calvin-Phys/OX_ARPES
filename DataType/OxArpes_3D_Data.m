@@ -44,7 +44,10 @@ classdef OxArpes_3D_Data
             xx = (max(obj.x)-min(obj.x))/length(obj.x);
             yy = (max(obj.y)-min(obj.y))/length(obj.y);
             zz = (max(obj.z)-min(obj.z))/length(obj.z);
-            volumeViewer(obj.value,ScaleFactors=[xx yy zz]);
+
+            rr = (max(obj.z)-min(obj.z)) / ((max(obj.x)-min(obj.x)+max(obj.y)-min(obj.y))/2);
+
+            volumeViewer(permute(obj.value, [2 1 3]), ScaleFactors=[xx yy zz/rr]);
         end
 
         function obj = set_contrast(obj)
