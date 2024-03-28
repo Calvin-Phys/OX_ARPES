@@ -122,7 +122,7 @@
                 X0 = asind(KX_r / CONST / sqrt(Eki) ./ cosd(Y0));
         
                 % Interpolate data
-                data_new(:,:,i) = interp2(y_offset, x_offset, obj.value(:,:,i), Y0, X0, 'spline', 0);
+                data_new(:,:,i) = interp2(y_offset, x_offset, obj.value(:,:,i), Y0, X0, 'cubic', 0);
             end
             data_new(data_new < 0) = 0;
         
