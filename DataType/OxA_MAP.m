@@ -231,99 +231,99 @@
 % 
 %         end
 
-        function KMAP = kconvert_nano(obj)
-
-            % find k boundary
-            Ek1 = min(obj.z);
-            Ek2 = max(obj.z);
-            y_offset = mean(obj.y);
-            thetaY = obj.y - y_offset;
-            thetaX = obj.x;
-            
-            [Y0,X0] = meshgrid(thetaY,thetaX);
-            Kx1 = zeros(size(X0));
-            Ky1 = zeros(size(X0));
-            Kz1 = zeros(size(X0));
-            Kx2 = zeros(size(X0));
-            Ky2 = zeros(size(X0));
-            Kz2 = zeros(size(X0));
-            for i=1:length(thetaX)
-                for j=1:length(thetaY)
-                    [Kx1(i,j),Ky1(i,j),Kz1(i,j)] = rotate2K(Ek1,y_offset,X0(i,j),Y0(i,j));
-                    [Kx2(i,j),Ky2(i,j),Kz2(i,j)] = rotate2K(Ek2,y_offset,X0(i,j),Y0(i,j));
-                end
-            end
-
-            % generate KX/KY mesh
-            Kx_min = min([Kx1(:);Kx2(:)]);
-            Kx_max = max([Kx1(:);Kx2(:)]);
-            Ky_min = min([Ky1(:);Ky2(:)]);
-            Ky_max = max([Ky1(:);Ky2(:)]);
-            
-            kx = linspace(Kx_min,Kx_max, round(1.5*length(thetaX)));
-            ky = linspace(Ky_min,Ky_max, round(1.5*length(thetaY)));
-            [KY,KX] = meshgrid(ky,kx);
-
-            % interpolate data_new
-            data_new = zeros(length(kx),length(ky),length(obj.z));
-            tic
-            for s=1:length(obj.z)
-                Kx3 = zeros(size(X0));
-                Ky3 = zeros(size(X0));
-                for i=1:length(thetaX)
-                    for j=1:length(thetaY)
-                        [Kx3(i,j),Ky3(i,j),~] = rotate2K(obj.z(s),y_offset,X0(i,j),Y0(i,j));
-                    end
-                end
-                value3 = obj.value(:,:,s);
-                % two methods: no obvious differences
-                data_new(:,:,s) = griddata(Kx3(:),Ky3(:),value3(:),KX,KY,'natural');
-            %     F = scatteredInterpolant(Kx3(:),Ky3(:),value3(:),'natural','none');
-            %     data_new(:,:,s) = F(KX,KY);
-                disp(s);
-            end
-            toc
-            data_new(data_new<0) = 0;
-            data_new(isnan(data_new))=0;
-
-            be = obj.z - (obj.info.photon_energy - obj.info.workfunction);
-
-            KMAP = OxA_MAP(kx,ky,be,data_new);
-            KMAP.x_name = 'K_x';
-            KMAP.x_unit = 'Å^{-1}';
-            KMAP.y_name = 'K_y';
-            KMAP.y_unit = 'Å^{-1}';
-            KMAP.z_name = 'Binding Energy';
-            KMAP.z_unit = 'eV';
-            KMAP.name = [obj.name '_ksp'];
-            KMAP.info = obj.info;
-
-            function [kx,ky,kz] = rotate2K(Eki,y_offset,thetax,thetay)
-                % electron mass = 9.1093837 × 10-31 kilograms
-                % hbar = 6.582119569...×10−16 eV⋅s
-                % k (A-1) = CONST [sqrt(2m)/hbar] * sqrt(Ek (eV)) * sin(theta)
-                CONST = 0.512316722;
-                z_i = [0 0 1]';
-                z_f = RM(RM([0 cosd(y_offset) -sind(y_offset)]',thetax)*[1 0 0]',-thetay)*RM([0 cosd(y_offset) -sind(y_offset)]',thetax)*RM([1 0 0]',-y_offset)*z_i;
-                kx = CONST* sqrt(Eki)* z_f(1);
-                ky = CONST* sqrt(Eki)* z_f(2);
-                kz = CONST* sqrt(Eki)* z_f(3);
-            end
-            
-            
-            function M = RM(U,deg)
-            %ROTATION_MATRIX Summary of this function goes here
-            %   Detailed explanation goes here
-                ux = U(1);
-                uy = U(2);
-                uz = U(3);
-                M =[cosd(deg)+ux^2*(1-cosd(deg)), ux*uy*(1-cosd(deg))-uz*sind(deg), ux*uz*(1-cosd(deg))+uy*sind(deg);
-                    uy*ux*(1-cosd(deg))+uz*sind(deg), cosd(deg)+uy^2*(1-cosd(deg)), uy*uz*(1-cosd(deg))-ux*sind(deg);
-                    uz*ux*(1-cosd(deg))-uy*sind(deg), uz*uy*(1-cosd(deg))+ux*sind(deg), cosd(deg)+uz^2*(1-cosd(deg))];
-            end
-
-
-        end
+%         function KMAP = kconvert_nano(obj)
+% 
+%             % find k boundary
+%             Ek1 = min(obj.z);
+%             Ek2 = max(obj.z);
+%             y_offset = mean(obj.y);
+%             thetaY = obj.y - y_offset;
+%             thetaX = obj.x;
+%             
+%             [Y0,X0] = meshgrid(thetaY,thetaX);
+%             Kx1 = zeros(size(X0));
+%             Ky1 = zeros(size(X0));
+%             Kz1 = zeros(size(X0));
+%             Kx2 = zeros(size(X0));
+%             Ky2 = zeros(size(X0));
+%             Kz2 = zeros(size(X0));
+%             for i=1:length(thetaX)
+%                 for j=1:length(thetaY)
+%                     [Kx1(i,j),Ky1(i,j),Kz1(i,j)] = rotate2K(Ek1,y_offset,X0(i,j),Y0(i,j));
+%                     [Kx2(i,j),Ky2(i,j),Kz2(i,j)] = rotate2K(Ek2,y_offset,X0(i,j),Y0(i,j));
+%                 end
+%             end
+% 
+%             % generate KX/KY mesh
+%             Kx_min = min([Kx1(:);Kx2(:)]);
+%             Kx_max = max([Kx1(:);Kx2(:)]);
+%             Ky_min = min([Ky1(:);Ky2(:)]);
+%             Ky_max = max([Ky1(:);Ky2(:)]);
+%             
+%             kx = linspace(Kx_min,Kx_max, round(1.5*length(thetaX)));
+%             ky = linspace(Ky_min,Ky_max, round(1.5*length(thetaY)));
+%             [KY,KX] = meshgrid(ky,kx);
+% 
+%             % interpolate data_new
+%             data_new = zeros(length(kx),length(ky),length(obj.z));
+%             tic
+%             for s=1:length(obj.z)
+%                 Kx3 = zeros(size(X0));
+%                 Ky3 = zeros(size(X0));
+%                 for i=1:length(thetaX)
+%                     for j=1:length(thetaY)
+%                         [Kx3(i,j),Ky3(i,j),~] = rotate2K(obj.z(s),y_offset,X0(i,j),Y0(i,j));
+%                     end
+%                 end
+%                 value3 = obj.value(:,:,s);
+%                 % two methods: no obvious differences
+%                 data_new(:,:,s) = griddata(Kx3(:),Ky3(:),value3(:),KX,KY,'natural');
+%             %     F = scatteredInterpolant(Kx3(:),Ky3(:),value3(:),'natural','none');
+%             %     data_new(:,:,s) = F(KX,KY);
+%                 disp(s);
+%             end
+%             toc
+%             data_new(data_new<0) = 0;
+%             data_new(isnan(data_new))=0;
+% 
+%             be = obj.z - (obj.info.photon_energy - obj.info.workfunction);
+% 
+%             KMAP = OxA_MAP(kx,ky,be,data_new);
+%             KMAP.x_name = 'K_x';
+%             KMAP.x_unit = 'Å^{-1}';
+%             KMAP.y_name = 'K_y';
+%             KMAP.y_unit = 'Å^{-1}';
+%             KMAP.z_name = 'Binding Energy';
+%             KMAP.z_unit = 'eV';
+%             KMAP.name = [obj.name '_ksp'];
+%             KMAP.info = obj.info;
+% 
+%             function [kx,ky,kz] = rotate2K(Eki,y_offset,thetax,thetay)
+%                 % electron mass = 9.1093837 × 10-31 kilograms
+%                 % hbar = 6.582119569...×10−16 eV⋅s
+%                 % k (A-1) = CONST [sqrt(2m)/hbar] * sqrt(Ek (eV)) * sin(theta)
+%                 CONST = 0.512316722;
+%                 z_i = [0 0 1]';
+%                 z_f = RM(RM([0 cosd(y_offset) -sind(y_offset)]',thetax)*[1 0 0]',-thetay)*RM([0 cosd(y_offset) -sind(y_offset)]',thetax)*RM([1 0 0]',-y_offset)*z_i;
+%                 kx = CONST* sqrt(Eki)* z_f(1);
+%                 ky = CONST* sqrt(Eki)* z_f(2);
+%                 kz = CONST* sqrt(Eki)* z_f(3);
+%             end
+%             
+%             
+%             function M = RM(U,deg)
+%             %ROTATION_MATRIX Summary of this function goes here
+%             %   Detailed explanation goes here
+%                 ux = U(1);
+%                 uy = U(2);
+%                 uz = U(3);
+%                 M =[cosd(deg)+ux^2*(1-cosd(deg)), ux*uy*(1-cosd(deg))-uz*sind(deg), ux*uz*(1-cosd(deg))+uy*sind(deg);
+%                     uy*ux*(1-cosd(deg))+uz*sind(deg), cosd(deg)+uy^2*(1-cosd(deg)), uy*uz*(1-cosd(deg))-ux*sind(deg);
+%                     uz*ux*(1-cosd(deg))-uy*sind(deg), uz*uy*(1-cosd(deg))+ux*sind(deg), cosd(deg)+uz^2*(1-cosd(deg))];
+%             end
+% 
+% 
+%         end
 
 
         function outputArg = method1(obj,inputArg)
