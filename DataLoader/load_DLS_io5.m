@@ -21,7 +21,8 @@ function DATA = load_DLS_io5(file_path)
     try
         t = datetime(end_time,'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS''Z');
     catch
-        t = datetime(end_time,'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS''+01:00');
+        end_time1 = strsplit(end_time,'+');
+        t = datetime(end_time1{1},'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS');
     end
 
     % the work function can change after certain period of time
