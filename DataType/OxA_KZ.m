@@ -89,7 +89,7 @@ classdef OxA_KZ < OxArpes_3D_Data
             data_new = zeros(kzn,kyn,length(obj.z));
             for i = 1:length(obj.z)
                 hv = Ek - obj.z(i) + workfunction;
-                data_new(:,:,i) = interp2(thetay_offset,obj.x,obj.value(:,:,i),thetay,hv,'cubic',0);
+                data_new(:,:,i) = interp2(thetay_offset,obj.x,obj.value(:,:,i),thetay,hv,'spline',0);
             end
             data_new(data_new<0) = 0;
             toc
