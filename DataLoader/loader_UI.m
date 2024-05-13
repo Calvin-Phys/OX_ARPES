@@ -70,7 +70,7 @@ function [file, path] = uigetfile_with_lastpath(lastPath)
     [file, path] = uigetfile({'*.*', 'All Files (*.*)'; ...
                               '*.txt;*.zip', 'Scienta CUT/MAP (*.txt, *.zip)'; ...
                               '*.hdf5', 'Elettra Nano (*.hdf5)'; ...
-                              '*.h5', 'PSI ULTRA/ADRESS (*.h5)'; ...
+                              '*.h5', 'SSRL BL5-2; PSI ULTRA/ADRESS (*.h5)'; ...
                               '*.nxs', 'DLS io5 (*.nxs)'; ...
                               '*.ibw', 'Igor binary wave (*.ibw)'; ...
                               '*.itx', 'Specs itx (*.itx)';...
@@ -98,7 +98,19 @@ function data = load_data_by_ext(filepath, ext)
         case '.hdf5'
             data = load_Elettra_Spectromicroscopy(filepath);
         case '.h5'
-            data = load_PSI_ULTRA(filepath);
+            try
+                h5readatt(filepath,'/UserSettings','Location');
+                flg = 0;
+            catch
+                flg = 1;
+            end
+                
+            if flg == 0
+                data = load_SSRL_BL52(filepath);
+            else
+                data = load_PSI_ULTRA(filepath);
+            end
+
         case '.nxs'
             data = load_DLS_io5(filepath);
         case '.ibw'
