@@ -71,7 +71,7 @@ function DATA = load_SSRL_BL52(file_path)
 
     elseif strcmp(data_type,'Map1D') % KZ
 
-        x = h5read(file_path,'/MapInfo/Beamline:energy');
+        x = double(h5read(file_path,'/MapInfo/Beamline:energy'));
         x_unit = h5readatt(file_path,'/Data/Axes2','Unit');
         x_label = h5readatt(file_path,'/Data/Axes2','Label');
 
@@ -88,14 +88,14 @@ function DATA = load_SSRL_BL52(file_path)
         z0_ = h5read(file_path,'/MapInfo/Data:Axes0:Offset');
         z0 = mean(z0_- x + h5readatt(file_path,'/UserSettings','WorkFunction'));
 
-        z = z0 + double(1:zn).*dz;
+        z = double(z0) + double(1:zn).*dz;
         z_unit = h5readatt(file_path,'/Data/Axes0','Unit');
         z_label = h5readatt(file_path,'/Data/Axes0','Label');
 
         count = h5read(file_path,'/Data/Count');
         exp_t = h5read(file_path,'/Data/Time');
 
-        DATA = OxA_MAP(x,y,z,count./exp_t);
+        DATA = OxA_KZ(x,y,z,double(count./exp_t));
         DATA.x_unit = x_unit;
         DATA.x_name = 'Photon Energy';
         DATA.y_unit = y_unit;
