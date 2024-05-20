@@ -210,11 +210,11 @@ function DATA = load_DLS_io5(file_path)
     if strcmp(DATA.info.acquisition_mode,'Fixed') || strcmp(DATA.info.acquisition_mode,'Dither')
         switch ndims(value)
             case 2
-                DATA.value = medfilt1(DATA.value,5,[],1);
-                DATA.value = medfilt1(DATA.value,5,[],2);
+                DATA.value = medfilt1(DATA.value,3,[],1);
+                DATA.value = medfilt1(DATA.value,3,[],2);
             case 3
-                DATA.value = medfilt1(DATA.value,5,[],2);
-                DATA.value = medfilt1(DATA.value,5,[],3);
+                DATA.value = medfilt1(DATA.value,3,[],2);
+                DATA.value = medfilt1(DATA.value,3,[],3);
 %                 DATA.value = filloutliers(DATA.value,'linear','mean',3);
 %                 DATA.value(:,17,91) = zeros(size(DATA.value,1),1);
         end
