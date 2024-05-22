@@ -138,7 +138,7 @@
             KMAP.y_unit = 'Å^{-1}';
             KMAP.z_name = '{\it E}-{\it E}_F';
             KMAP.z_unit = 'eV';
-            KMAP.name = [obj.name '_ksp'];
+            KMAP.name = append(obj.name,'_ksp');
             KMAP.info = obj.info;
 
         end
