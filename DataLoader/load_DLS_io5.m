@@ -129,7 +129,13 @@ function DATA = load_DLS_io5(file_path)
         DATA.x_unit = 'mm';
     elseif contains(title,'scan salong')
         x = flip(h5read(file_path,'/entry1/analyser/salong'));
-        value = h5read(file_path,'/entry1/analyser/analyser');
+        try
+            value = h5read(file_path,'/entry1/analyser/analyser');
+        catch
+            value = double(h5read(file_path,'/entry1/analyser/data'));
+            value = sum(value, [1 2]);
+            value = value(:);
+        end
         DATA = OxArpes_1D_Data(x,value);
         DATA.x_name = 'salong';
         DATA.x_unit = 'mm';
@@ -153,7 +159,9 @@ function DATA = load_DLS_io5(file_path)
         DATA_4D.z = z;
         DATA_4D.k = h5read(file_path,'/entry1/analyser/angles');
         DATA_4D.value = permute(h5read(file_path,'/entry1/analyser/data'),[4 3 2 1]);
-        assignin('base',append('DATA_4D_',string(t,'HH_mm_ss')),DATA_4D);
+        [~, varname, ~] = fileparts(file_path);
+        varname = strrep(varname,'-','_');
+        assignin('base',append('DATA_4D_',varname),DATA_4D);
     elseif (contains(title,'scan saz') && contains(title,'sax'))
         x = mean(flip(h5read(file_path,'/entry1/analyser/sax')),2)';
         y = mean(h5read(file_path,'/entry1/analyser/saz'),1);
@@ -207,7 +215,7 @@ function DATA = load_DLS_io5(file_path)
     DATA.info.beamline = 'DLS_i05_HR';
 
 %     remove spikes
-    if strcmp(DATA.info.acquisition_mode,'Fixed') || strcmp(DATA.info.acquisition_mode,'Dither')
+    if (strcmp(DATA.info.acquisition_mode,'Fixed') || strcmp(DATA.info.acquisition_mode,'Dither')) && ( strcmp(class(DATA),'OxA_MAP') || strcmp(class(DATA),'OxA_CUT') || strcmp(class(DATA),'OxA_KZ') )
         switch ndims(value)
             case 2
                 DATA.value = medfilt1(DATA.value,3,[],1);
