@@ -38,8 +38,8 @@ function DATA = load_DLS_io5(file_path)
         workfunction = -2.505295708E-10 *photon_energy.^4 +5.376936163E-8 *photon_energy.^3 +9.213495312E-9 *photon_energy.^2  - 0.000146349 *photon_energy +4.443810286;
     else
         % 2024Feb
-        x = [54 60 90 120 150 180 200];
-        y = 4.5 -[0.0847 0.0889 0.0927 0.1079 0.1014 0.1106 0.1068];
+        x = [30 54 60 90 120 150 180 200];
+        y = 4.5 - [0.0847 0.0847 0.0889 0.0927 0.1079 0.1014 0.1106 0.1068];
         % x = [42 60 90 120 150 180 201];
         % y = 4.5 - [0.0581 0.0585 0.0643 0.0559 0.0313 0.0176 0.0126];
         workfunction = interp1(x,y,photon_energy,'makima','extrap');
@@ -47,11 +47,21 @@ function DATA = load_DLS_io5(file_path)
     end
 
     if contains(title,'static readout')
-        x = h5read(file_path,'/entry1/analyser/angles');
-        y = h5read(file_path,'/entry1/analyser/energies');
         
-        DATA = OxA_CUT(x,y,value');
-%         DATA = DATA.set_contrast();
+        try 
+            x = h5read(file_path,'/entry1/analyser/angles');
+            y = h5read(file_path,'/entry1/analyser/energies');
+            
+            DATA = OxA_CUT(x,y,value');
+        catch
+            x = h5read(file_path,'/entry1/analyser/location');
+            y = h5read(file_path,'/entry1/analyser/energies');
+            
+            DATA = OxA_CUT(x,y,value');
+            DATA.x_name = 'Location';
+            DATA.x_unit = 'mm';
+        end
+
         
     elseif contains(title,'scan pathgroup')
         value = permute(value,[3,2,1]);
@@ -218,11 +228,11 @@ function DATA = load_DLS_io5(file_path)
     if (strcmp(DATA.info.acquisition_mode,'Fixed') || strcmp(DATA.info.acquisition_mode,'Dither')) && ( strcmp(class(DATA),'OxA_MAP') || strcmp(class(DATA),'OxA_CUT') || strcmp(class(DATA),'OxA_KZ') )
         switch ndims(value)
             case 2
-                DATA.value = medfilt1(DATA.value,3,[],1);
-                DATA.value = medfilt1(DATA.value,3,[],2);
+                DATA.value = medfilt1(DATA.value,5,[],1);
+                DATA.value = medfilt1(DATA.value,5,[],2);
             case 3
-                DATA.value = medfilt1(DATA.value,3,[],2);
-                DATA.value = medfilt1(DATA.value,3,[],3);
+                DATA.value = medfilt1(DATA.value,5,[],2);
+                DATA.value = medfilt1(DATA.value,5,[],3);
 %                 DATA.value = filloutliers(DATA.value,'linear','mean',3);
 %                 DATA.value(:,17,91) = zeros(size(DATA.value,1),1);
         end
