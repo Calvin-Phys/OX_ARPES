@@ -1,31 +1,62 @@
 function loader_UI(varargin)
     % load ARPES data to pre-defined class object.
-    
+    % input can be: empty - prompt UI window to select files
+    % a single file path - load the file
+    % a cell of file paths - load all the files
+
     % memorize last opened directory
-    persistent lastPath path
+    persistent lastPath Path
     if isempty(lastPath) 
         lastPath = 0;
     end
+
+    %% obtain the file list
+    if ~isempty(varargin)
+        % [~, file, ext] = fileparts(varargin{1});
+        if iscell(varargin{1})
+            file_list = varargin{1};
+        elseif isfile(varargin{1})
+            file_list = {varargin{1}};
+        else
+            return
+        end
+        
+        if isempty(file_list)
+            return
+        end
+
+    else
+        % select folder
+        if lastPath == 0
+            [file, Path] = uigetfile_with_lastpath(pwd);
+        else
+            [file, Path] = uigetfile_with_lastpath(lastPath);
+        end
     
-    % select folder
-    if lastPath == 0
-        [file, path] = uigetfile_with_lastpath(pwd);
-    else
-        [file, path] = uigetfile_with_lastpath(lastPath);
+        % empty
+        if Path == 0
+            return
+        else
+            lastPath = Path;
+        end
+
+        file_list = {};
+        
+        if ~iscell(file)
+            % one file
+            file_list = {fullfile(Path, file)};
+        else
+            for i = 1:length(file)
+                file_list{i} = fullfile(Path, file{i});
+            end
+        end
+
     end
 
-    % empty
-    if path == 0
-        return
-    else
-        lastPath = path;
-    end
+    %% load and assign data
 
-    % one file
-    if ~iscell(file)
-        file = {file};
-    end
-    N = length(file);
+
+    N = length(file_list);
 
     % multiply file
     f = waitbar(0, '');
@@ -36,10 +67,10 @@ function loader_UI(varargin)
 
     for i = 1:N
         % get file name and ext
-        filename = file{i};
+        filename = file_list{i};
         [~, basename, ext] = fileparts(filename);
 
-        waitbar(i/N, f, ['Loading selected data [', filename, '] ... ', num2str(i), '/', num2str(N)]);
+        waitbar(i/N, f, append('Loading selected data [', basename, ext, '] ... ', num2str(i), '/', num2str(N)));
 
         % Simplify the string replacements for the basename variable
         if contains(basename,'-')
@@ -54,7 +85,7 @@ function loader_UI(varargin)
 
 
         % Call the separate function to handle file extensions and loading functions
-        data = load_data_by_ext(fullfile(path, filename), ext);
+        data = load_data_by_ext(filename, ext);
 
         % assign the data to base workspace
         if ~isempty(data)
@@ -66,7 +97,7 @@ function loader_UI(varargin)
 %     close(f)
 end
 
-function [file, path] = uigetfile_with_lastpath(lastPath)
+function [file, path] = uigetfile_with_lastpath(lastPath_)
     [file, path] = uigetfile({'*.*', 'All Files (*.*)'; ...
                               '*.txt;*.zip', 'Scienta CUT/MAP (*.txt, *.zip)'; ...
                               '*.hdf5', 'Elettra Nano (*.hdf5)'; ...
@@ -76,7 +107,7 @@ function [file, path] = uigetfile_with_lastpath(lastPath)
                               '*.itx', 'Specs itx (*.itx)';...
                               '*.fits', 'ALS Maestro fits (*.fits)';...
                               '*.mat', 'MAT-files (*.mat)'}, ...
-                              'Select One or More Files', 'MultiSelect', 'on', lastPath);
+                              'Select One or More Files', 'MultiSelect', 'on', lastPath_);
 end
 
 function data = load_data_by_ext(filepath, ext)
