@@ -32,7 +32,7 @@ classdef OxArpes_2D_Data
 
         end
 
-        function ha1 = show(obj)
+        function show(obj)
             h1 = figure('Name',obj.name);
             ha1 = axes('parent',h1);
             
@@ -40,13 +40,77 @@ classdef OxArpes_2D_Data
             imagesc(ha1,obj.x,obj.y,obj.value');
             xlabel(ha1,[obj.x_name ' (' obj.x_unit ')']);
             ylabel(ha1,[obj.y_name ' (' obj.y_unit ')']);
-            title(ha1,append(obj.name, ': ', num2str(round(obj.info.photon_energy,1)), 'eV ', obj.info.polarization),'interpreter', 'none');
+            try 
+                title(ha1,append(obj.name, ': ', num2str(round(obj.info.photon_energy,1)), 'eV ', obj.info.polarization),'interpreter', 'none');
+            catch
+                title(ha1,append(obj.name, ': ', num2str(round(obj.info.photon_energy,1)), 'eV'),'interpreter', 'none');
+            end
             set(ha1,'YDir','normal');
             colormap(ha1,flipud(gray));
+
+            set(ha1,'TickDir','out');
+            set(ha1,'XMinorTick','on','YMinorTick','on');
+            ha1.XAxis.MinorTickValues = interp1(1:length(ha1.XTick),ha1.XTick,0.5:0.5:(length(ha1.XTick)+0.5),'linear','extrap');
+            ha1.YAxis.MinorTickValues = interp1(1:length(ha1.YTick),ha1.YTick,0.5:0.5:(length(ha1.YTick)+0.5),'linear','extrap');
 
             if strcmp(obj.x_unit,obj.y_unit)
                 pbaspect([1 1 1]);
             end
+
+            set(ha1,'linewidth',1.5);
+            set(ha1,'fontsize',12);
+            fontname(h1,"Arial");
+
+        end
+
+        function ha1 = show_for_print(obj)
+
+            set(groot,{'DefaultAxesXColor','DefaultAxesYColor','DefaultAxesZColor'},{'k','k','k'});
+
+            h1 = figure('Name',obj.name,'Renderer', 'painters');
+%             h1.Units = 'centimeters';
+%             h1.Position = [3 3 15 15];
+            ha1 = axes('parent',h1);
+            % ha1.Units = 'centimeters';
+            % ha1.Position = [2 2 3.5 3.2];
+
+            set(ha1,'linewidth',1.5);
+            fontname(ha1,"Arial");
+            
+            % imagesc meshc
+            % hold on
+            imagesc(ha1,obj.x,obj.y,obj.value');
+            xlabel(ha1,[obj.x_name ' (' obj.x_unit ')']);
+            ylabel(ha1,[obj.y_name ' (' obj.y_unit ')']);
+%             title(ha1,append(obj.name, ': ', num2str(round(obj.info.photon_energy,1)), 'eV ', obj.info.polarization),'interpreter', 'none');
+            set(ha1,'YDir','normal');
+
+            load('oxa_colourmap.mat');
+            colormap(ha1,flip(oxa_blue));
+            clim(ha1,[0 0.7*max(obj.value,[],"all")]);
+
+            set(ha1,'TickDir','out');
+            box(ha1,'off');
+            set(ha1,'XMinorTick','on','YMinorTick','on');
+            ha1.XAxis.MinorTickValues = interp1(1:length(ha1.XTick),ha1.XTick,0.5:0.5:(length(ha1.XTick)+0.5),'linear','extrap');
+            ha1.YAxis.MinorTickValues = interp1(1:length(ha1.YTick),ha1.YTick,0.5:0.5:(length(ha1.YTick)+0.5),'linear','extrap');
+            % axis tight
+
+            % This syntax just sets the axis limits to their current value
+            xlim(ha1, xlim(ha1));
+            ylim(ha1, ylim(ha1));
+            
+            % Set right and upper axis lines to same color as axes
+            xline(max(xlim(ha1)), 'k-', 'Color', ha1.XAxis.Color);
+            yline(max(ylim(ha1)), 'k-', 'Color', ha1.YAxis.Color);
+
+            if strcmp(obj.x_unit,obj.y_unit)
+                pbaspect([1 1 1]);
+            end
+            set(ha1,'fontsize',10);
+            % set(findall(gcf,'-property','FontSize'),'FontSize',6);
+
+
         end
 
         function save_fig(obj,name)
@@ -106,8 +170,6 @@ classdef OxArpes_2D_Data
 
         end
 
-
-
         function dx = get_dx(obj)
             nx = length(obj.x);
             P = polyfit(1:nx,obj.x,1);
@@ -120,11 +182,6 @@ classdef OxArpes_2D_Data
             dy = P(1);
         end
 
-        function outputArg = method1(obj,inputArg)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            outputArg = obj.Property1 + inputArg;
-        end
     end
 end
 
