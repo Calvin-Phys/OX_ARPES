@@ -12,9 +12,9 @@
             obj@OxArpes_3D_Data(varargin{:});
 
             obj.name = 'MAP';
-            obj.x_name = 'Theta X';
+            obj.x_name = 'Angle X';
             obj.x_unit = 'deg';
-            obj.y_name = 'Theta Y';
+            obj.y_name = 'Angle Y';
             obj.y_unit = 'deg';
             obj.z_name = 'Kinetic Energy';
             obj.z_unit = 'eV';
@@ -132,11 +132,11 @@
             % Create KMAP
             KMAP = OxA_MAP(kx, ky, be, data_new);
             % (Set KMAP properties)
-            KMAP.x_name = '{\it k}_x';
+            KMAP.x_name = '{\itk}_x';
             KMAP.x_unit = 'Å^{-1}';
-            KMAP.y_name = '{\it k}_y';
+            KMAP.y_name = '{\itk}_y';
             KMAP.y_unit = 'Å^{-1}';
-            KMAP.z_name = '{\it E}-{\it E}_F';
+            KMAP.z_name = '{\itE} - {\itE}_F';
             KMAP.z_unit = 'eV';
             KMAP.name = append(obj.name,'_ksp');
             KMAP.info = obj.info;

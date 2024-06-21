@@ -14,9 +14,9 @@ classdef OxA_KZ < OxArpes_3D_Data
             obj.name = 'KZ';
             obj.x_name = 'Photon Energy';
             obj.x_unit = 'eV';
-            obj.y_name = 'Theta Y';
+            obj.y_name = 'Angle Y';
             obj.y_unit = 'deg';
-            obj.z_name = '{\it E}-{\it E}_F';
+            obj.z_name = '{\itE} - {\itE}_F';
             obj.z_unit = 'eV';
 
             obj.info.thetay_offset = 0;
@@ -95,11 +95,11 @@ classdef OxA_KZ < OxArpes_3D_Data
             toc
 
             KMAP = OxA_KZ(kz,ky,obj.z,data_new);
-            KMAP.x_name = '{\it k}_z';
+            KMAP.x_name = '{\itk}_z';
             KMAP.x_unit = 'Å^{-1}';
-            KMAP.y_name = '{\it k}_y';
+            KMAP.y_name = '{\itk}_y';
             KMAP.y_unit = 'Å^{-1}';
-            KMAP.z_name = '{\it E}-{\it E}_F';
+            KMAP.z_name = '{\itE} - {\itE}_F';
             KMAP.z_unit = 'eV';
             KMAP.name = [obj.name '_ksp'];
             KMAP.info = obj.info;
@@ -148,7 +148,7 @@ classdef OxA_KZ < OxArpes_3D_Data
             KMAP.x_unit = 'eV';
             KMAP.y_name = '{\it k}_y';
             KMAP.y_unit = 'Å^{-1}';
-            KMAP.z_name = '{\it E}-{\it E}_F';
+            KMAP.z_name = '{\itE} - {\itE}_F';
             KMAP.z_unit = 'eV';
             KMAP.name = [obj.name '_khv'];
             KMAP.info = obj.info;

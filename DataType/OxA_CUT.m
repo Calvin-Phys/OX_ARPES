@@ -14,7 +14,7 @@ classdef OxA_CUT < OxArpes_2D_Data
             obj@OxArpes_2D_Data(varargin{:});
 
             obj.name = 'CUT';
-            obj.x_name = 'Theta Y';
+            obj.x_name = 'Angle Y';
             obj.x_unit = 'deg';
             obj.y_name = 'Kinetic Energy';
             obj.y_unit = 'eV';
@@ -55,9 +55,9 @@ classdef OxA_CUT < OxArpes_2D_Data
 
             be = obj.y - (obj.info.photon_energy - obj.info.workfunction);
             KCUT = OxA_CUT(kx,be,data_new);
-            KCUT.x_name = '{\it k}_y';
+            KCUT.x_name = '{\itk}_y';
             KCUT.x_unit = 'Å^{-1}';
-            KCUT.y_name = '{\it E}-{\it E}_F';
+            KCUT.y_name = '{\itE} - {\itE}_F';
             KCUT.y_unit = 'eV';
             KCUT.name = [obj.name '_ksp'];
             KCUT.info = obj.info;

@@ -43,18 +43,21 @@ classdef OxArpes_2D_Data
             try 
                 title(ha1,append(obj.name, ': ', num2str(round(obj.info.photon_energy,1)), 'eV ', obj.info.polarization),'interpreter', 'none');
             catch
-                title(ha1,append(obj.name, ': ', num2str(round(obj.info.photon_energy,1)), 'eV'),'interpreter', 'none');
+                try
+                    title(ha1,append(obj.name, ': ', num2str(round(obj.info.photon_energy,1)), 'eV'),'interpreter', 'none');
+                catch
+                end
             end
             set(ha1,'YDir','normal');
             colormap(ha1,flipud(gray));
 
-            set(ha1,'TickDir','out');
+%             set(ha1,'TickDir','out');
             set(ha1,'XMinorTick','on','YMinorTick','on');
             ha1.XAxis.MinorTickValues = interp1(1:length(ha1.XTick),ha1.XTick,0.5:0.5:(length(ha1.XTick)+0.5),'linear','extrap');
             ha1.YAxis.MinorTickValues = interp1(1:length(ha1.YTick),ha1.YTick,0.5:0.5:(length(ha1.YTick)+0.5),'linear','extrap');
 
             if strcmp(obj.x_unit,obj.y_unit)
-                pbaspect([1 1 1]);
+                daspect([1 1 1]);
             end
 
             set(ha1,'linewidth',1.5);
