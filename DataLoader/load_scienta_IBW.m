@@ -6,10 +6,20 @@ function DATA = load_scienta_IBW(file_path)
 
     % notes, read the header
     notes = buffer.WaveNotes;
-    notes1 = regexp(notes,'[A-Z][\w-]*( [\w-]*)*=[\w-]*(\.\d*)*','match');
+    notes1 = regexp(notes,'[A-Z][\w-]*( [\w-]*)*=[\w-]*(\.\d*)*','match'); % need update
     notes2 = squeeze(split(notes1,'='));
 
+    % info for workfunction
+    Index = contains(notes2(:,1),'Location');
+    bmln = notes2{Index,2};
+    Index = contains(notes2(:,1),'Date');
+    exp_date = datetime(notes2{Index,2});
+    Index = contains(notes2(:,1),'Pass Energy');
+    pe = str2num(notes2{Index,2});
+    Index = contains(notes2(:,1),'Excitation Energy');
+    hv = str2num(notes2{Index,2});
 
+    
     % check data dimension
     switch buffer.Ndim
         case 2
@@ -48,18 +58,16 @@ function DATA = load_scienta_IBW(file_path)
                 P = polyfit(1:nz,data.z,1);
                 dz = P(1);
 
-                % interpolate (workfunction at MAXIV)
-                x = [25 50 60 110 160 170];
-                y = [4.3907 4.4095 4.4133 4.4667 4.5164 4.5193];
+                % interpolate (workfunction)
 
-                Emin = min(min(data.z,[],'all') + interp1(x,y,data.x,'spline','extrap'),[],'all'); 
-                Emax = max(max(data.z,[],'all') + interp1(x,y,data.x,'spline','extrap'),[],'all'); 
+                Emin = min(min(data.z,[],'all') + get_beamline_workfunction(bmln,exp_date,data.x,pe),[],'all'); 
+                Emax = max(max(data.z,[],'all') + get_beamline_workfunction(bmln,exp_date,data.x,pe),[],'all'); 
                 EEF_new = Emin:dz:Emax;
                 [EEFF, YY] = meshgrid(EEF_new,data.y);
         
                 VALUE_NEW = zeros(length(data.x),length(data.y),length(EEF_new));
                 for i = 1:length(data.x)
-                    wf = interp1(x,y,data.x(i),'spline','extrap');
+                    wf = get_beamline_workfunction(bmln,exp_date,data.x(i),pe);
                     CUT = squeeze(data.value(i,:,:));
                     VALUE_NEW(i,:,:) = interp2(data.z + wf,data.y,CUT,EEFF,YY,'spline',0);
                 end
@@ -82,20 +90,12 @@ function DATA = load_scienta_IBW(file_path)
     Index = contains(notes2(:,1),'Acquisition Mode');
     DATA.info.acquisition_mode = notes2{Index,2};
     Index = contains(notes2(:,1),'Location');
-    bmln = notes2{Index,2};
-    DATA.info.beamline = bmln;
+    DATA.info.beamline = notes2{Index,2};
+    
+    DATA.info.workfunction = get_beamline_workfunction(bmln,exp_date,hv,pe);
 
-    switch bmln
-        case {'MAXIV','Bloch'}
-            DATA.info.beamline = 'MAXIV_Bloch';
-            x = [25 50 60 110 160 170];
-            y = [4.3907 4.4095 4.4133 4.4667 4.5164 4.5193];
-            DATA.info.workfunction = interp1(x,y,DATA.info.photon_energy,'spline','extrap'); 
-        case {'1square'}
-            DATA.info.workfunction = 4.5;
-        otherwise
-            DATA.info.workfunction = 4.44; 
-    end
+    Index = contains(notes2(:,1),'Date');
+    DATA.info.experiment_date = notes2{Index,2};
 
     DATA.info.header = notes2;
 

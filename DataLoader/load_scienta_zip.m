@@ -9,7 +9,7 @@ function MAP = load_scienta_zip(file_path)
     cleanupObj = onCleanup(@() remove_temp_folder(folder_path));
 
     % Extract data headers from the 'viewer.ini' file
-    [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_mod,bmln] = extract_data_header(folder_path);
+    [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_mod,bmln,exp_date] = extract_data_header(folder_path);
 
     % Read the data from the binary file
     value = read_data(bin_path, Precision);
@@ -21,25 +21,11 @@ function MAP = load_scienta_zip(file_path)
     MAP = OxA_MAP(x, y, z, value);
     MAP.info.photon_energy = hv;
 
-    switch bmln
-        case {'MAXIV','Bloch'}
-            MAP.info.beamline = 'MAXIV_Bloch';
-            x = [25 50 60 110 160 170];
-            y = [4.3907 4.4095 4.4133 4.4667 4.5164 4.5193];
-            MAP.info.workfunction = interp1(x,y,hv,'spline','extrap'); 
-        case {'Cassiopee'}
-            MAP.info.beamline = 'Soleil_Cassiopee';
-            MAP.info.workfunction = 4.21;
-        case {'SLS-SIS'}
-            MAP.info.beamline = 'PSI_Ultra';
-            MAP.info.workfunction = 4.454;
-        otherwise
-            MAP.info.workfunction = 4.44; 
-    end
-
+    MAP.info.workfunction = get_beamline_workfunction(bmln,exp_date,hv,pe);
     MAP.info.lens_mod = lm;
     MAP.info.pass_energy = pe;
     MAP.info.acquisition_mod = aqc_mod;
+    MAP.info.experiment_date = exp_date;
 
 %     MAP = MAP.set_contrast();s
     
@@ -54,7 +40,7 @@ function folder_path = unzip_to_temp_folder(file_path)
     unzip(file_path,folder_path);
 end
 
-function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_mod,bmln] = extract_data_header(folder_path)
+function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_mod,bmln,exp_date] = extract_data_header(folder_path)
     % Add code to extract data header
 
     % open `view.ini`
@@ -140,6 +126,11 @@ function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_
         tline = fgetl(fileID);
     end
     bmln = tline(10:end);
+
+    while ~startsWith(tline,'Date=')
+        tline = fgetl(fileID);
+    end
+    exp_date = tline(6:end);
     
     fclose(fileID);
 end
