@@ -31,8 +31,15 @@ function DATA = load_DLS_io5(file_path)
         y = [0.5791 0.4390 0.1696 -0.0296] + 4.5;
         workfunction = interp1(x,y,photon_energy,'spline','extrap');
     elseif year(t)<2023
-    % 2022 11
-        workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
+        if month(t) > 6
+            % 2022 11
+            workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
+        else
+            % 2022 5
+            x = [30 40 60 90 120 150 180 200];
+            y = 4.5 + [0.0942 0.0942 0.0933 0.0927 0.0966 0.0994 0.0685 0.0713];
+            workfunction = interp1(x,y,photon_energy,'makima','extrap');
+        end
     elseif year(t)<2024
     % 2023
         workfunction = -2.505295708E-10 *photon_energy.^4 +5.376936163E-8 *photon_energy.^3 +9.213495312E-9 *photon_energy.^2  - 0.000146349 *photon_energy +4.443810286;
