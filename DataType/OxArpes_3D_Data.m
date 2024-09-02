@@ -219,6 +219,57 @@ classdef OxArpes_3D_Data
             dz = P(1);
         end
 
+        function CUT = get_slice(obj,direction,pos,width)
+
+            CUT = [];
+
+            switch direction
+                case 'x'
+                    xData = obj.y;
+                    yData = obj.z;
+                    xData_name = obj.y_name;
+                    xData_unit = obj.y_unit;
+                    yData_name = obj.z_name;
+                    yData_unit = obj.z_unit;
+                    cond = ( abs(obj.x - pos) <= width/2 );
+                    if ~any(cond)
+                        [~,cond] = min(abs(obj.x - pos));
+                    end
+                    sliceData = squeeze(mean(obj.value(cond,:,:),1));
+                case 'y'
+                    xData = obj.x;
+                    yData = obj.z;
+                    xData_name = obj.x_name;
+                    xData_unit = obj.x_unit;
+                    yData_name = obj.z_name;
+                    yData_unit = obj.z_unit;
+                    cond = ( abs(obj.y - pos) <= width/2 );
+                    if ~any(cond)
+                        [~,cond] = min(abs(obj.y - pos));
+                    end
+                    sliceData = squeeze(mean(obj.value(:,cond,:),2));
+                otherwise
+                    xData = obj.x;
+                    yData = obj.y;
+                    xData_name = obj.x_name;
+                    xData_unit = obj.x_unit;
+                    yData_name = obj.y_name;
+                    yData_unit = obj.y_unit;
+                    cond = ( abs(obj.z - pos) <= width/2 );
+                    if ~any(cond)
+                        [~,cond] = min(abs(obj.z - pos));
+                    end
+                    sliceData = squeeze(mean(obj.value(:,:,cond),3));
+            end
+
+            CUT = OxA_CUT(xData,yData,sliceData);
+            CUT.x_name = xData_name;
+            CUT.y_name = yData_name;
+            CUT.x_unit = xData_unit;
+            CUT.y_unit = yData_unit;
+            CUT.info = obj.info;
+
+        end
         function outputArg = method1(obj,inputArg)
             %METHOD1 Summary of this method goes here
             %   Detailed explanation goes here

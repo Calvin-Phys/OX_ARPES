@@ -32,7 +32,7 @@ classdef OxArpes_2D_Data
 
         end
 
-        function show(obj)
+        function ha1 = show(obj)
             h1 = figure('Name',obj.name);
             ha1 = axes('parent',h1);
             
