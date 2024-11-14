@@ -76,7 +76,7 @@ classdef OxA_KZ < OxArpes_3D_Data
                 CONST* sqrt(hv_min+energy_min-workfunction).*sind(thetay_min));
 
 
-            kzn = 2*length(obj.x);
+            kzn = 3*length(obj.x);
             kyn = 3*length(thetay_offset);
             kz = linspace(kz_min,kz_max,kzn);
             ky = linspace(ky_min,ky_max,kyn);
