@@ -20,6 +20,7 @@ classdef OxArpes_3D_Data
     end
     
     methods
+        % constructor
         function obj = OxArpes_3D_Data(varargin)
             if nargin == 4
                 obj.x = varargin{1};
@@ -34,6 +35,7 @@ classdef OxArpes_3D_Data
             end
         end
 
+        % show / display
         function show(obj)
 
             UI = OxArpes_DataViewer(obj);
@@ -53,6 +55,7 @@ classdef OxArpes_3D_Data
             end
         end
 
+        % basic operations
         function obj = set_contrast(obj)
             n_data = sort(obj.value(:));
             upbound = n_data(round(0.995*length(n_data)));
@@ -201,6 +204,7 @@ classdef OxArpes_3D_Data
 
         end
 
+        % others
         function dx = get_dx(obj)
             nx = length(obj.x);
             P = polyfit(1:nx,obj.x,1);
@@ -270,11 +274,7 @@ classdef OxArpes_3D_Data
             CUT.info = obj.info;
 
         end
-        function outputArg = method1(obj,inputArg)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            outputArg = obj.Property1 + inputArg;
-        end
+        
     end
 end
 
