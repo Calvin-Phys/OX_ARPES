@@ -10,7 +10,7 @@ function DATA = load_SSRL_BL52(file_path)
         dx = h5readatt(file_path,'/Data/Axes1','Delta');
         x0 = h5readatt(file_path,'/Data/Axes1','Offset');
 
-        x = x0 + double(1:xn).*dx;
+        x = x0 + double(0:(xn-1)).*dx;
         x_unit = h5readatt(file_path,'/Data/Axes1','Unit');
         x_label = h5readatt(file_path,'/Data/Axes1','Label');
 
@@ -18,7 +18,7 @@ function DATA = load_SSRL_BL52(file_path)
         dy = h5readatt(file_path,'/Data/Axes0','Delta');
         y0 = h5readatt(file_path,'/Data/Axes0','Offset');
 
-        y = y0 + double(1:yn)*dy;
+        y = y0 + double(0:(yn-1))*dy;
         y_unit = h5readatt(file_path,'/Data/Axes0','Unit');
         y_label = h5readatt(file_path,'/Data/Axes0','Label');
 
@@ -38,7 +38,7 @@ function DATA = load_SSRL_BL52(file_path)
         dy = h5readatt(file_path,'/Data/Axes1','Delta');
         y0 = h5readatt(file_path,'/Data/Axes1','Offset');
 
-        y = y0 + double(1:yn)*dy;
+        y = y0 + double(0:(yn-1))*dy;
         y_unit = h5readatt(file_path,'/Data/Axes1','Unit');
         y_label = h5readatt(file_path,'/Data/Axes1','Label');
 
@@ -46,7 +46,7 @@ function DATA = load_SSRL_BL52(file_path)
         dz = h5readatt(file_path,'/Data/Axes0','Delta');
         z0 = h5readatt(file_path,'/Data/Axes0','Offset');
 
-        z = z0 + double(1:zn).*dz;
+        z = z0 + double(0:(zn-1)).*dz;
         z_unit = h5readatt(file_path,'/Data/Axes0','Unit');
         z_label = h5readatt(file_path,'/Data/Axes0','Label');
 
@@ -54,7 +54,7 @@ function DATA = load_SSRL_BL52(file_path)
         dx = h5readatt(file_path,'/Data/Axes2','Delta');
         x0 = h5readatt(file_path,'/Data/Axes2','Offset');
 
-        x = x0 + double(1:xn)*dx;
+        x = x0 + double(0:(xn-1))*dx;
         x_unit = h5readatt(file_path,'/Data/Axes2','Unit');
         x_label = h5readatt(file_path,'/Data/Axes2','Label');
 
@@ -79,16 +79,17 @@ function DATA = load_SSRL_BL52(file_path)
         dy = h5readatt(file_path,'/Data/Axes1','Delta');
         y0 = h5readatt(file_path,'/Data/Axes1','Offset');
 
-        y = y0 + double(1:yn)*dy;
+        y = y0 + double(0:(yn-1))*dy;
         y_unit = h5readatt(file_path,'/Data/Axes1','Unit');
         y_label = h5readatt(file_path,'/Data/Axes1','Label');
 
         zn = h5readatt(file_path,'/Data/Axes0','Count');
-        dz = h5readatt(file_path,'/Data/Axes0','Delta');
+        % dz = h5readatt(file_path,'/Data/Axes0','Delta');
+        dz = mean(h5read(file_path,'/MapInfo/Data:Axes0:Delta'));
         z0_ = h5read(file_path,'/MapInfo/Data:Axes0:Offset');
         z0 = mean(z0_- x + h5readatt(file_path,'/UserSettings','WorkFunction'));
 
-        z = double(z0) + double(1:zn).*dz;
+        z = double(z0) + double(0:(zn-1)).*double(dz);
         z_unit = h5readatt(file_path,'/Data/Axes0','Unit');
         z_label = h5readatt(file_path,'/Data/Axes0','Label');
 
@@ -111,18 +112,31 @@ function DATA = load_SSRL_BL52(file_path)
     % ------- add Info
     DATA.info.photon_energy = h5readatt(file_path,'/Beamline','energy');
     DATA.info.polarization = h5readatt(file_path,'/Beamline','polarization');
+    switch DATA.info.polarization
+        case 0
+            DATA.info.polarization = 'LH';
+        case 0.5
+            DATA.info.polarization = 'LV';
+    end
+    DATA.info.exit_slit = h5readatt(file_path,'/Beamline','pexit');
     DATA.info.pass_energy = h5readatt(file_path,'/Measurement','PassEnergy');
+    DATA.info.lens_mod = h5readatt(file_path,'/Measurement','LensModeName');
     DATA.info.acquisition_mode = h5readatt(file_path,'/Measurement','Description');
-    DATA.info.temperature = h5readatt(file_path,'/Temperature','TA');
+    DATA.info.temperature_coldhead = h5readatt(file_path,'/Temperature','TA');
+    DATA.info.temperature_sample_stage = h5readatt(file_path,'/Temperature','TB');
+    DATA.info.sample_X = h5readatt(file_path,'/Manipulator','X');
+    DATA.info.sample_Y = h5readatt(file_path,'/Manipulator','Y');
+    DATA.info.sample_Z = h5readatt(file_path,'/Manipulator','Z');
+    DATA.info.sample_T = h5readatt(file_path,'/Manipulator','T');
+    DATA.info.sample_F = h5readatt(file_path,'/Manipulator','F');
+    DATA.info.sample_A = h5readatt(file_path,'/Manipulator','A');
     DATA.info.workfunction = h5readatt(file_path,'/UserSettings','WorkFunction');
+    DATA.info.resolution_total = h5readatt(file_path,'/Resolution','TotalResolution');
+    DATA.info.resolution_beamline = h5readatt(file_path,'/Resolution','BeamlineResolution');
+    DATA.info.resolution_analyser = h5readatt(file_path,'/Resolution','AnalyserResolution');
     DATA.info.beamline = h5readatt(file_path,'/UserSettings','Location');
-% 
-% %     Index = find(contains({data_info.Groups(2).Datasets(21).Attributes.Name},'Mode'));
-%     DATA.info.polarization = data_info.Groups(2).Datasets(21).Attributes(3).Value;
-%     Index = find(contains({data_info.Groups(1).Datasets.Attributes.Name},'Acquisition Mode'));
-%     DATA.info.acquisition_mode = data_info.Groups(1).Datasets.Attributes(Index).Value;
-%     Index = find(contains({data_info.Groups(1).Datasets.Attributes.Name},'Pass Energy (eV)'));
-%     DATA.info.pass_energy = data_info.Groups(1).Datasets.Attributes(Index).Value;
+    DATA.info.beamline = h5readatt(file_path,'/Details','CreationTime');
+    DATA.info.raw = data_info;
 
     
 end
