@@ -24,9 +24,9 @@ Supported Beamlines:
 - Diamond Light Sourse io5 `DataLoader/load_DLS_io5.m`
 - Swiss Light Source ULTRA/ADRESS `DataLoader/load_PSI_ULTRA.m`
 - Elettra Spectromicroscopy `DataLoader/load_Elettra_Spectromicroscopy.m`
-
-- ALS MAESTRO .fits `DataLoader/load_ALS_Maestro_fits.m`
 - Soleil Cassiopee (testing) .txt `DataLoader/test/load_Soleil_Cassiopee_folder.m`
+- ALS BL10&7 MAESTRO .fits `DataLoader/load_ALS_Maestro_fits.m`
+- SSRL BL5-2 `DataLoader/load_SSRL_BL52.m`
 
 Usage / Getting Started:
 - This package is still under development.
