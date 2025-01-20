@@ -6,18 +6,30 @@ function DATA = load_scienta_IBW(file_path)
 
     % notes, read the header
     notes = buffer.WaveNotes;
-    notes1 = regexp(notes,'[A-Z][\w-]*( [\w-]*)*=[\w-]*(\.\d*)*','match'); % need update
-    notes2 = squeeze(split(notes1,'='));
 
-    % info for workfunction
-    Index = contains(notes2(:,1),'Location');
-    bmln = notes2{Index,2};
-    Index = contains(notes2(:,1),'Date');
-    exp_date = datetime(notes2{Index,2});
-    Index = contains(notes2(:,1),'Pass Energy');
-    pe = str2num(notes2{Index,2});
-    Index = contains(notes2(:,1),'Excitation Energy');
-    hv = str2num(notes2{Index,2});
+    try %ses
+        notes1 = regexp(notes,'[A-Z][\w-]*( [\w-]*)*=[\w-]*(\.\d*)*','match'); % need update
+        notes2 = squeeze(split(notes1,'='));
+    
+        % info for workfunction
+        Index = contains(notes2(:,1),'Location');
+        bmln = notes2{Index,2};
+        Index = contains(notes2(:,1),'Date');
+        exp_date = datetime(notes2{Index,2});
+        Index = contains(notes2(:,1),'Pass Energy');
+        pe = str2num(notes2{Index,2});
+        Index = contains(notes2(:,1),'Excitation Energy');
+        hv = str2num(notes2{Index,2});
+
+    catch %peak
+        notes3 = jsondecode(notes);
+        blmn = notes3.Location;
+        exp_date = notes3.Date;
+        pe = notes3.PassEnergy;
+        hv = notes3.ExcitationSource.ExcitationSourceEnergyInformation.Energy;
+
+
+    end
 
     
     % check data dimension
@@ -80,24 +92,36 @@ function DATA = load_scienta_IBW(file_path)
     end
 
 
-
-    Index = contains(notes2(:,1),'Pass Energy');
-    DATA.info.pass_energy = str2num(notes2{Index,2});
-    Index = contains(notes2(:,1),'Lens Mode');
-    DATA.info.len_mode = notes2{Index,2};
-    Index = contains(notes2(:,1),'Excitation Energy');
-    DATA.info.photon_energy = str2num(notes2{Index,2});
-    Index = contains(notes2(:,1),'Acquisition Mode');
-    DATA.info.acquisition_mode = notes2{Index,2};
-    Index = contains(notes2(:,1),'Location');
-    DATA.info.beamline = notes2{Index,2};
+    try
+        Index = contains(notes2(:,1),'Pass Energy');
+        DATA.info.pass_energy = str2num(notes2{Index,2});
+        Index = contains(notes2(:,1),'Lens Mode');
+        DATA.info.len_mode = notes2{Index,2};
+        Index = contains(notes2(:,1),'Excitation Energy');
+        DATA.info.photon_energy = str2num(notes2{Index,2});
+        Index = contains(notes2(:,1),'Acquisition Mode');
+        DATA.info.acquisition_mode = notes2{Index,2};
+        Index = contains(notes2(:,1),'Location');
+        DATA.info.beamline = notes2{Index,2};
     
-    DATA.info.workfunction = get_beamline_workfunction(bmln,exp_date,hv,pe);
+        DATA.info.workfunction = get_beamline_workfunction(bmln,exp_date,hv,pe);
+    
+        Index = contains(notes2(:,1),'Date');
+        DATA.info.experiment_date = notes2{Index,2};
+    
+        DATA.info.header = notes2;
+    catch
+        DATA.info.pass_energy = notes3.PassEnergy;
+        DATA.info.len_mode = notes3.LensMode;
+        DATA.info.photon_energy = notes3.ExcitationSource.ExcitationSourceEnergyInformation.Energy;
+        DATA.info.acquisition_mode = notes3.AcquisitionMode;
+        DATA.info.beamline = notes3.Location;
+        DATA.info.experiment_date = notes3.Date;
+        DATA.info.header = notes3;
+    end
 
-    Index = contains(notes2(:,1),'Date');
-    DATA.info.experiment_date = notes2{Index,2};
 
-    DATA.info.header = notes2;
+
 
     % remove spikes
 %     if strcmp(DATA.info.acquisition_mode,'Fixed')
