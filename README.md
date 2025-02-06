@@ -16,17 +16,30 @@ Data types included:
 - Map `DataType/OxA_MAP.m`
 - Photon energy scan (Kz) `DataType/OxA_KZ.m`
 - Real space scan `DataType/OxA_RSImage.m`
+- Corelevel / EDC `DataType/OxArpes_1D_Data.m`
 
 Supported Beamlines:
 - Beamlines with Scienta Omicron Analyser 
     - using SES software `DataLoader/load_scienta_txt.m`, `DataLoader/load_scienta_zip.m`, `DataLoader/load_scienta_IBW.m`
     - using PEAK software `DataLoader/load_scienta_IBW.m`
-- Diamond Light Sourse io5 `DataLoader/load_DLS_io5.m`
-- Swiss Light Source ULTRA/ADRESS `DataLoader/load_PSI_ULTRA.m`
+- Diamond Light Source 
+    - i05 `DataLoader/load_DLS_io5.m`
+    - i09 `DataLoader/load_DLS_io9_HAXPES.m`, `load_DLS_io9_kPEEM.m`
+- Swiss Light Source 
+    - ULTRA `DataLoader/load_PSI_ULTRA.m`
+    - ADRESS (testing)
 - Elettra Spectromicroscopy `DataLoader/load_Elettra_Spectromicroscopy.m`
 - Soleil Cassiopee (testing) .txt `DataLoader/test/load_Soleil_Cassiopee_folder.m`
-- ALS BL10&7 MAESTRO .fits `DataLoader/load_ALS_Maestro_fits.m`
+- ALS BL10 & BL7 MAESTRO .fits `DataLoader/load_ALS_Maestro_fits.m`
 - SSRL BL5-2 `DataLoader/load_SSRL_BL52.m`
+
+Other Tools:
+- Basic data process panel `OxArpes_DataProcess.mlapp`
+- Resolution calculator `OxArpes_ResolutionCalculator.mlapp`
+- Fine structure viewer `OxArpes_FineStructure.mlapp`
+- 3D data viewer `OxArpes_DataViewer.mlapp`
+- Data auto sync `OxArpes_Sync.mlapp`
+- Data list browser `OxArpes_DataList.mlapp`
 
 Usage / Getting Started:
 - This package is still under development.
