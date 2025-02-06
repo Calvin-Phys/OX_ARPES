@@ -219,6 +219,7 @@ classdef OxArpes_2D_Data
 
         end
 
+
         function [D2x_CUT,D2y_CUT] = second_derivative(obj,sig_x,sig_y)
             % >>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             % Gaussian Smooth 
