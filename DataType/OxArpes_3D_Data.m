@@ -246,6 +246,37 @@ classdef OxArpes_3D_Data
 
         end
 
+        function R_DATA = z_rotate(obj,deg,zero_center)
+            % Create Kx, Ky grids
+            kx = obj.x;
+            ky = obj.y;
+
+            if ~zero_center
+                kx = kx - mean(kx);
+                ky = ky - mean(ky);
+            end
+            [KY, KX] = meshgrid(ky, kx);
+            
+            % Rotate by azimuth offset
+            azimuth_cos = cosd(deg);
+            azimuth_sin = sind(deg);
+
+            KY_r =  azimuth_cos * KY + azimuth_sin * KX;
+            KX_r = -azimuth_sin * KY + azimuth_cos * KX;
+        
+            % Resample data
+            data_new = zeros(length(obj.x),length(obj.y),length(obj.z));
+            for i = 1:length(obj.z)
+        
+                % Interpolate data
+                data_new(:,:,i) = interp2(ky, kx, obj.value(:,:,i), KY_r, KX_r, 'cubic', 0);
+            end
+            data_new(data_new < 0) = 0;
+
+            R_DATA = obj;
+            R_DATA.value = data_new;
+        end
+
         % others
         function dx = get_dx(obj)
             nx = length(obj.x);
