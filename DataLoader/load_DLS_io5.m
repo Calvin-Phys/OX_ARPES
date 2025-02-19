@@ -3,54 +3,62 @@ function DATA = load_DLS_io5(file_path)
 %   Detailed explanation goes here
     
     %   -------------------------
-    title = h5read(file_path,'/entry1/title');
+    try
+        title = h5read(file_path,'/entry1/title');
+    catch
+        title = h5read(file_path,'/entry1/scan_command');
+    end
+
     try
         value = double(h5read(file_path,'/entry1/analyser/data'));
     catch
-
     end
 
     photon_energy = h5read(file_path,'/entry1/instrument/monochromator/energy');
     pass_energy = h5read(file_path,'/entry1/instrument/analyser/pass_energy');
 
-    end_time = h5read(file_path,'/entry1/end_time');
-    if isempty(end_time)
-        end_time = h5read(file_path,'/entry1/start_time');
-    end
-
     try
-        t = datetime(end_time,'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS''Z');
-    catch
-        end_time1 = strsplit(end_time,'+');
-        t = datetime(end_time1{1},'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS');
-    end
-
-    % the work function can change after certain period of time
-    if year(t) <= 2020
-        x = [120 144 176 200];
-        y = [0.5791 0.4390 0.1696 -0.0296] + 4.5;
-        workfunction = interp1(x,y,photon_energy,'spline','extrap');
-    elseif year(t)<2023
-        if month(t) > 6
-            % 2022 11
-            workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
-        else
-            % 2022 5
-            x = [30 40 60 90 120 150 180 200];
-            y = 4.5 + [0.0942 0.0942 0.0933 0.0927 0.0966 0.0994 0.0685 0.0713];
-            workfunction = interp1(x,y,photon_energy,'makima','extrap');
+        end_time = h5read(file_path,'/entry1/end_time');
+        if isempty(end_time)
+            end_time = h5read(file_path,'/entry1/start_time');
         end
-    elseif year(t)<2024
-    % 2023
-        workfunction = -2.505295708E-10 *photon_energy.^4 +5.376936163E-8 *photon_energy.^3 +9.213495312E-9 *photon_energy.^2  - 0.000146349 *photon_energy +4.443810286;
-    else
-        % 2024Feb
-        x = [30 54 60 90 120 150 180 200];
-        y = 4.5 - [0.0847 0.0847 0.0889 0.0927 0.1079 0.1014 0.1106 0.1068];
-        % x = [42 60 90 120 150 180 201];
-        % y = 4.5 - [0.0581 0.0585 0.0643 0.0559 0.0313 0.0176 0.0126];
-        workfunction = interp1(x,y,photon_energy,'makima','extrap');
-        % workfunction = 4.5 + 0.*photon_energy;
+    
+        try
+            t = datetime(end_time,'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS''Z');
+        catch
+            end_time1 = strsplit(end_time,'+');
+            t = datetime(end_time1{1},'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSS');
+        end
+    
+        % the work function can change after certain period of time
+        if year(t) <= 2020
+            x = [120 144 176 200];
+            y = [0.5791 0.4390 0.1696 -0.0296] + 4.5;
+            workfunction = interp1(x,y,photon_energy,'spline','extrap');
+        elseif year(t)<2023
+            if month(t) > 6
+                % 2022 11
+                workfunction = 5.77602E-6 *photon_energy.^2 + 1.23949E-3 *photon_energy + 4.4144;
+            else
+                % 2022 5
+                x = [30 40 60 90 120 150 180 200];
+                y = 4.5 + [0.0942 0.0942 0.0933 0.0927 0.0966 0.0994 0.0685 0.0713];
+                workfunction = interp1(x,y,photon_energy,'makima','extrap');
+            end
+        elseif year(t)<2024
+        % 2023
+            workfunction = -2.505295708E-10 *photon_energy.^4 +5.376936163E-8 *photon_energy.^3 +9.213495312E-9 *photon_energy.^2  - 0.000146349 *photon_energy +4.443810286;
+        else
+            % 2024Feb
+            x = [30 54 60 90 120 150 180 200];
+            y = 4.5 - [0.0847 0.0847 0.0889 0.0927 0.1079 0.1014 0.1106 0.1068];
+            % x = [42 60 90 120 150 180 201];
+            % y = 4.5 - [0.0581 0.0585 0.0643 0.0559 0.0313 0.0176 0.0126];
+            workfunction = interp1(x,y,photon_energy,'makima','extrap');
+            % workfunction = 4.5 + 0.*photon_energy;
+        end
+    catch
+        workfunction = 4.8;
     end
 
     if contains(title,'static readout')
@@ -90,6 +98,14 @@ function DATA = load_DLS_io5(file_path)
         z = mean(h5read(file_path,'/entry1/analyser/energies'),2);
         DATA = OxA_MAP(x,y,z,value);
 %         DATA = DATA.set_contrast();
+
+    % polar map
+    elseif contains(title,'scan sapolar')
+        value = permute(value,[3,2,1]);
+        x = h5read(file_path,'/entry1/analyser/sapolar');
+        y = h5read(file_path,'/entry1/analyser/angles');
+        z = h5read(file_path,'/entry1/analyser/energies');
+        DATA = OxA_MAP(x,y,z,value);
 
     % old KZ scan
     elseif contains(title,'scan energy_group')
@@ -216,7 +232,10 @@ function DATA = load_DLS_io5(file_path)
     catch
     end
     DATA.info.pass_energy = h5read(file_path,'/entry1/instrument/analyser/pass_energy');
-    DATA.info.center_energy = h5read(file_path,'/entry1/instrument/analyser/kinetic_energy_center');
+    try
+        DATA.info.center_energy = h5read(file_path,'/entry1/instrument/analyser/kinetic_energy_center');
+    catch
+    end
     DATA.info.temperature = h5read(file_path,'/entry1/sample/temperature');
     DATA.info.exit_slit = h5read(file_path,'/entry1/instrument/monochromator/exit_slit_size');
     
@@ -227,7 +246,10 @@ function DATA = load_DLS_io5(file_path)
     DATA.info.sample_tilt = h5read(file_path,'/entry1/instrument/manipulator/satilt');
     DATA.info.sample_azimuth = h5read(file_path,'/entry1/instrument/manipulator/saazimuth');
 
-    DATA.info.time_measured = t;
+    try
+        DATA.info.time_measured = t;
+    catch
+    end
     DATA.info.time_loaded = datetime("now");
     DATA.info.beamline = 'DLS_i05_HR';
 
