@@ -275,8 +275,9 @@ classdef OxArpes_2D_Data
         end
 
         function [D2x_CUT,D2y_CUT] = curvature(obj,sig_x,sig_y,C1,C2)
-                        % >>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            % Gaussian Smooth 
+            % >>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            % Curvature 
+            % ref: Zhang, P. et al. A precise method for visualizing dispersive features in image plots. Rev. Sci. Instrum. 82, 043712 (2011).
             
             % sigma - standard deviation
             rad_x = ceil(3.5*sig_x);
@@ -319,18 +320,18 @@ classdef OxArpes_2D_Data
             A1 = max(Fu.^2,[],"all");
             A2 = max(Fv.^2,[],"all");
 
-            D2y = -Fuu./(C1*A1+Fu.^2).^(3/2);
-            D2x = -Fvv./(C2*A2+Fv.^2).^(3/2);
+            D2y = -Fuu./(C2*A1+Fu.^2).^(3/2);
+            D2x = -Fvv./(C1*A2+Fv.^2).^(3/2);
     
-            D2y(D2y<0) = 0;
-            D2x(D2x<0) = 0;
+%             D2y(D2y<0) = 0;
+%             D2x(D2x<0) = 0;
             
             D2x_CUT = obj;
-            D2x_CUT.name = [obj.name ' sd-x'];
+            D2x_CUT.name = [obj.name ' cv-x'];
             D2x_CUT.value = D2x(1+w1:L+w1,1+w2:J+w2);
             
             D2y_CUT = obj;
-            D2y_CUT.name = [obj.name ' sd-y'];
+            D2y_CUT.name = [obj.name ' cv-y'];
             D2y_CUT.value = D2y(1+w1:L+w1,1+w2:J+w2);
         end
 
