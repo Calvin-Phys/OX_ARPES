@@ -75,7 +75,7 @@
                     ky_max = max(CRNR_KR(2,:),[],"all");
                     ky_min = min(CRNR_KR(2,:),[],"all");
         
-                    kxn = length(x_offset)*2;
+                    kxn = length(x_offset)*4;
                     kyn = length(y_offset);
                     
                     
