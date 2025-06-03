@@ -3,11 +3,11 @@ function DATA = load_ALBA_LOREA(file_path)
 %   Detailed explanation goes here
     title = h5read(file_path,'/entry1/title');
     
-    notes = h5read(file_path,'/entry1/notes');
+    data = h5read(file_path,'/entry1/data/data');
 
-    switch notes
+    switch ndims(data)
 
-        case 'spatial scan'
+        case 2
             x = h5read(file_path,'/entry1/data/angles');
             y = h5read(file_path,'/entry1/data/energies');
             value = double(h5read(file_path,'/entry1/data/data'));
@@ -19,7 +19,7 @@ function DATA = load_ALBA_LOREA(file_path)
             DATA.y_name = 'Kinetic Energy';
             DATA.y_unit = 'eV';
 
-        case {'FS','FM'}
+        case 3
             x = h5read(file_path,'/entry1/data/defl_angles');
             y = h5read(file_path,'/entry1/data/angles');
             z = h5read(file_path,'/entry1/data/energies');
