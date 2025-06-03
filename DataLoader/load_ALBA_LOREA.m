@@ -19,7 +19,7 @@ function DATA = load_ALBA_LOREA(file_path)
             DATA.y_name = 'Kinetic Energy';
             DATA.y_unit = 'eV';
 
-        case 'FS'
+        case {'FS','FM'}
             x = h5read(file_path,'/entry1/data/defl_angles');
             y = h5read(file_path,'/entry1/data/angles');
             z = h5read(file_path,'/entry1/data/energies');
