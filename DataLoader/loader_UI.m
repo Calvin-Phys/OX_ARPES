@@ -102,10 +102,11 @@ function [file, path] = uigetfile_with_lastpath(lastPath_)
                               '*.txt;*.zip', 'Scienta CUT/MAP (*.txt, *.zip)'; ...
                               '*.hdf5', 'Elettra Nano (*.hdf5)'; ...
                               '*.h5', 'SSRL BL5-2; PSI ULTRA/ADRESS (*.h5)'; ...
-                              '*.nxs', 'DLS io5/9 (*.nxs)'; ...
+                              '*.nxs', 'DLS io5/9; ALBA LOREA (*.nxs)'; ...
                               '*.ibw', 'Igor binary wave (*.ibw)'; ...
                               '*.itx', 'Specs itx (*.itx)';...
                               '*.fits', 'ALS Maestro fits (*.fits)';...
+                              '*.krx', 'ALBA LOREA Spin (*.krx)';...
                               '*.mat', 'MAT-files (*.mat)'}, ...
                               'Select One or More Files', 'MultiSelect', 'on', lastPath_);
 end
@@ -147,10 +148,15 @@ function data = load_data_by_ext(filepath, ext)
                 data = load_DLS_io5(filepath);
             catch
                 try
-                    data = load_DLS_io9_kPEEM(filepath);
+                    data = load_ALBA_LOREA(filepath);
                 catch
-                    data = load_DLS_io9_HAXPES(filepath);
+                    try
+                        data = load_DLS_io9_kPEEM(filepath);
+                    catch
+                        data = load_DLS_io9_HAXPES(filepath);
+                    end
                 end
+                
             end
         case '.ibw'
             data = load_scienta_IBW(filepath);
@@ -158,6 +164,8 @@ function data = load_data_by_ext(filepath, ext)
             data = load_Specs_itx(filepath);
         case '.fits'
             data = load_ALS_Maestro_fits(filepath);
+        case '.krx'
+            data = load_ALBA_krx(filepath);
         otherwise
             warning(['Fail to load ' filepath '. Check data type.']);
             data = [];
