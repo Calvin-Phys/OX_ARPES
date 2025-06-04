@@ -20,24 +20,46 @@ function DATA = load_ALBA_LOREA(file_path)
             DATA.y_unit = 'eV';
 
         case 3
-            x = h5read(file_path,'/entry1/data/defl_angles');
-            y = h5read(file_path,'/entry1/data/angles');
-            z = h5read(file_path,'/entry1/data/energies');
-            value = double(h5read(file_path,'/entry1/data/data'));
+            try
+                x = h5read(file_path,'/entry1/data/defl_angles');
+                y = h5read(file_path,'/entry1/data/angles');
+                z = h5read(file_path,'/entry1/data/energies');
+                value = double(h5read(file_path,'/entry1/data/data'));
+                
+                px = polyfit(1:length(x),x,1);
+                x_ = px(2) + px(1) * (0:(length(x)-1));
+                py = polyfit(1:length(y),y,1);
+                y_ = py(2) + py(1) * (0:(length(y)-1));
+    
+                DATA = OxA_MAP(x_,y_,z,permute(value,[3 2 1]));
             
-            px = polyfit(1:length(x),x,1);
-            x_ = px(2) + px(1) * (0:(length(x)-1));
-            py = polyfit(1:length(y),y,1);
-            y_ = py(2) + py(1) * (0:(length(y)-1));
+                DATA.x_name = 'Defl Angle';
+                DATA.x_unit = 'Deg';
+                DATA.y_name = 'Angle';
+                DATA.y_unit = 'Deg';
+                DATA.z_name = 'Kinetic Energy';
+                DATA.z_unit = 'eV';
+            catch
+                x = h5read(file_path,'/entry1/data/photon_energies');
+                y = h5read(file_path,'/entry1/data/angles');
+                z = h5read(file_path,'/entry1/data/binding_energies');
+                value = double(h5read(file_path,'/entry1/data/data'));
+                
+%                 px = polyfit(1:length(x),x,1);
+%                 x_ = px(2) + px(1) * (0:(length(x)-1));
+%                 py = polyfit(1:length(y),y,1);
+%                 y_ = py(2) + py(1) * (0:(length(y)-1));
+    
+                DATA = OxA_KZ(x,y,z,permute(value,[3 2 1]));
+            
+                DATA.x_name = 'Photon Energy';
+                DATA.x_unit = 'eV';
+                DATA.y_name = 'Angle';
+                DATA.y_unit = 'Deg';
+                DATA.z_name = 'Binding Energy';
+                DATA.z_unit = 'eV';
 
-            DATA = OxA_MAP(x_,y_,z,permute(value,[3 2 1]));
-        
-            DATA.x_name = 'Defl Angle';
-            DATA.x_unit = 'Deg';
-            DATA.y_name = 'Angle';
-            DATA.y_unit = 'Deg';
-            DATA.z_name = 'Kinetic Energy';
-            DATA.z_unit = 'eV';
+            end
 
     end
 
