@@ -27,9 +27,9 @@ function DATA = load_ALBA_LOREA(file_path)
                 value = double(h5read(file_path,'/entry1/data/data'));
                 
                 px = polyfit(1:length(x),x,1);
-                x_ = px(2) + px(1) * (0:(length(x)-1));
+                x_ = px(2) + px(1) * (1:(length(x)));
                 py = polyfit(1:length(y),y,1);
-                y_ = py(2) + py(1) * (0:(length(y)-1));
+                y_ = py(2) + py(1) * (1:(length(y)));
     
                 DATA = OxA_MAP(x_,y_,z,permute(value,[3 2 1]));
             
