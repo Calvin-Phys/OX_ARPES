@@ -165,7 +165,11 @@ function data = load_data_by_ext(filepath, ext)
         case '.fits'
             data = load_ALS_Maestro_fits(filepath);
         case '.krx'
-            data = load_ALBA_krx(filepath);
+            try
+                data = load_ALBA_krx(filepath);
+            catch
+                data = load_ALBA_krx_S(filepath);
+            end
         otherwise
             warning(['Fail to load ' filepath '. Check data type.']);
             data = [];
