@@ -1,10 +1,6 @@
 function DATA = load_ALBA_krx_S(filename)
 % LOAD_KRX_DEFLECTOR_MAP Load Scienta Omicron .krx files with 2D or 3D output
 %
-% Usage:
-%   krx = load_krx_deflector_map('file.krx', 0);  % for 2D output
-%   krx = load_krx_deflector_map('file.krx', 1);  % for 3D stack
-%
 % Output:
 %   krx - struct with image(s), metadata, axis scaling, and options
 
