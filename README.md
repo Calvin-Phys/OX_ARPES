@@ -30,6 +30,7 @@ Supported Beamlines:
     - ADRESS (testing)
 - Elettra Spectromicroscopy `DataLoader/load_Elettra_Spectromicroscopy.m`
 - Soleil Cassiopee (testing) .txt `DataLoader/test/load_Soleil_Cassiopee_folder.m`
+- ALBA Lorea (spin) .nxs/.krx `DataLoader/load_ALBA_LOREA.m`, `DataLoader/load_ALBA_krx.m`, `DataLoader/load_ALBA_krx_S.m`,
 - ALS BL10 & BL7 MAESTRO .fits `DataLoader/load_ALS_Maestro_fits.m`
 - SSRL BL5-2 `DataLoader/load_SSRL_BL52.m`
 
