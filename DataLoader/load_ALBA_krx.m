@@ -126,7 +126,7 @@ function DATA = load_ALBA_krx(filename, v_3Dflag)
 
         % -- Read image data --
         fseek(fid, double(image_pos) * 4, 'bof');
-        raw = fread(fid, image_sizeX * image_sizeY, 'float32=>single');
+        raw = fread(fid, image_sizeX * image_sizeY, 'uint32');
         databuffer(:,:) = reshape(raw, [image_sizeX, image_sizeY])';
 
         % -- Store image --
