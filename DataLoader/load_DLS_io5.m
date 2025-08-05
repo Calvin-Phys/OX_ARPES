@@ -165,6 +165,18 @@ function DATA = load_DLS_io5(file_path)
         DATA = OxArpes_1D_Data(x,value);
         DATA.x_name = 'say';
         DATA.x_unit = 'mm';
+    elseif contains(title,'scan sax')
+        x = flip(h5read(file_path,'/entry1/analyser/sax'));
+        try
+            value = h5read(file_path,'/entry1/analyser/analyser');
+        catch
+            value = double(h5read(file_path,'/entry1/analyser/data'));
+            value = sum(value, [1 2]);
+            value = value(:);
+        end
+        DATA = OxArpes_1D_Data(x,value);
+        DATA.x_name = 'sax';
+        DATA.x_unit = 'mm';
     elseif contains(title,'scan salong')
         x = flip(h5read(file_path,'/entry1/analyser/salong'));
         try
