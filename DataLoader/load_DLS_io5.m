@@ -48,7 +48,7 @@ function DATA = load_DLS_io5(file_path)
         elseif year(t)<2024
         % 2023
             workfunction = -2.505295708E-10 *photon_energy.^4 +5.376936163E-8 *photon_energy.^3 +9.213495312E-9 *photon_energy.^2  - 0.000146349 *photon_energy +4.443810286;
-        else
+        elseif year(t)<2025
             % 2024Feb
             x = [30 54 60 90 120 150 180 200];
             y = 4.5 - [0.0847 0.0847 0.0889 0.0927 0.1079 0.1014 0.1106 0.1068];
@@ -56,6 +56,11 @@ function DATA = load_DLS_io5(file_path)
             % y = 4.5 - [0.0581 0.0585 0.0643 0.0559 0.0313 0.0176 0.0126];
             workfunction = interp1(x,y,photon_energy,'makima','extrap');
             % workfunction = 4.5 + 0.*photon_energy;
+        else
+            x = [20 40 60 80 100 120 140 160];
+            y = 4.5 - [0.034 0.0239 0.0067 -0.0023 -0.0184 -0.0505 -0.0738 -0.123];
+            workfunction = interp1(x,y,photon_energy,'makima','extrap');
+            workfunction = 4.45 + 0.*photon_energy;
         end
     catch
         workfunction = 4.8;
