@@ -79,23 +79,35 @@ function CUT = load_Soleil_Cassiopee(file_path)
     pressure_line = lines{find(startsWith(lines, 'P(mbar) :'), 1)};
     CUT.info.vacuum_pressure = sscanf(pressure_line(11:end), '%f')';
 
-    hv_line = lines{find(startsWith(lines, 'hv (eV) :'), 1)};
-    CUT.info.photon_energy = sscanf(hv_line(11:end), '%f')';
-
-    polarization_line = lines{find(startsWith(lines, 'Polarisation [0:LV, 1:LH, 2:AV, 3:AH, 4:CR] :'), 1)};
-    PL = polarization_line(end);
-    switch PL
-        case '0'
-            CUT.info.polarization = 'LV';
-        case '1'
-            CUT.info.polarization = 'LH';
-        case '2'
-            CUT.info.polarization = 'AV';
-        case '3'
-            CUT.info.polarization = 'AH';
-        case '4'
-            CUT.info.polarization = 'CR';
+    try 
+        hv_line = lines{find(startsWith(lines, 'hv (eV) :'), 1)};
+        CUT.info.photon_energy = sscanf(hv_line(11:end), '%f')';
+    catch
+        hv_line = lines{find(startsWith(lines, 'hv mono (eV) :'), 1)};
+        CUT.info.photon_energy = sscanf(hv_line(16:end), '%f')';
     end
+    
+
+    try
+        polarization_line = lines{find(startsWith(lines, 'Polarisation [0:LV, 1:LH, 2:AV, 3:AH, 4:CR] :'), 1)};
+        PL = polarization_line(end);
+        switch PL
+            case '0'
+                CUT.info.polarization = 'LV';
+            case '1'
+                CUT.info.polarization = 'LH';
+            case '2'
+                CUT.info.polarization = 'AV';
+            case '3'
+                CUT.info.polarization = 'AH';
+            case '4'
+                CUT.info.polarization = 'CR';
+        end
+    catch
+        polarization_line = lines{find(startsWith(lines, 'Polarisation :'), 1)};
+        PL = polarization_line(end-1:end);
+    end
+    
 
     % remove spikes
     CUT.value = medfilt1(CUT.value,2,[],1);
