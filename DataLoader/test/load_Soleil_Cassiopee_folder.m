@@ -22,26 +22,22 @@ function DATA = load_Soleil_Cassiopee_folder(file)
         name_list1(i) = strip(name_list1(i),"right",'_'); 
     end
 
-    name_list2 = {};
-    for i=1:length(name_list1)
-        name_list2(:,i) = split(name_list1(i),'_');
-    end
-
-
-    Num_Cuts = (size(name_list2,2)/2);
+    Num_Cuts = (length(name_list1)/2);
     
-    name_base = name_list2{1,1};
+    name_base = name(1:end-4);
+
     name_num = 1:Num_Cuts;
     % ROI1
-    name_suffix1 = name_list2{3,1};
+    name_suffix1 = 'ROI1';
     % i
-    name_suffix2 = name_list2{3,2};
+    name_suffix2 = 'i';
 
     Cuts = {};
     theta_list = [];
     hv_list = [];
     value = [];
     for i=1:Num_Cuts
+        fullfile(filepath,[name_base '_' num2str(i) '_' name_suffix1 '_' ext])
         Cuts{i} = load_Soleil_Cassiopee(fullfile(filepath,[name_base '_' num2str(i) '_' name_suffix1 '_' ext]));
 
         theta_list(i) = Cuts{i}.info.sample_theta;
