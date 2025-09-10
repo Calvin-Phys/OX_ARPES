@@ -8,6 +8,8 @@ classdef OxArpes_1D_Data
 
         x_name;
         x_unit;
+        v_name;
+        v_unit;
 
         x; 
         value; 
@@ -28,6 +30,9 @@ classdef OxArpes_1D_Data
             
             plot(ha1,obj.x,obj.value);
             xlabel(ha1,[obj.x_name ' (' obj.x_unit ')']);
+            if ~isempty(obj.v_name)
+                ylabel(ha1,[obj.v_name ' (' obj.v_unit ')']);
+            end
             title(ha1,obj.name,'interpreter', 'none');
         end
 
