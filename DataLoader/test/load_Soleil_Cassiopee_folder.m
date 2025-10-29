@@ -37,9 +37,7 @@ function DATA = load_Soleil_Cassiopee_folder(file)
     hv_list = [];
     value = [];
     for i=1:Num_Cuts
-        fullfile(filepath,[name_base '_' num2str(i) '_' name_suffix1 '_' ext])
         Cuts{i} = load_Soleil_Cassiopee(fullfile(filepath,[name_base '_' num2str(i) '_' name_suffix1 '_' ext]));
-
         theta_list(i) = Cuts{i}.info.sample_theta;
         hv_list(i) = Cuts{i}.info.photon_energy;
     
