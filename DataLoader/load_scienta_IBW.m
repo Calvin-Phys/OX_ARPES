@@ -89,6 +89,17 @@ function DATA = load_scienta_IBW(file_path)
             else % map
                 DATA = OxA_MAP(data);
             end
+        case 4
+            DataSize = size(buffer.y);
+            XSize = DataSize(3);
+            YSize = DataSize(2);
+            ESize = DataSize(1);
+            KSize = DataSize(4);
+            % data.value = permute(buffer.y, [3 2 1]);
+            % data.x = buffer.x0(3)+((1:XSize)-1)*buffer.dx(3);
+            % data.y = buffer.x0(2)+((1:YSize)-1)*buffer.dx(2);
+            % data.z = buffer.x0(1)+((1:ZSize)-1)*buffer.dx(1);
+
     end
 
 
