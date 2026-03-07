@@ -176,6 +176,58 @@ classdef OxArpes_2D_Data
 
         end
 
+        function NEW_DATA = block_reduce(obj, nx, ny)
+        
+            % 2D block averaging with independent block sizes:
+            % nx : block size along x-direction (first dimension)
+            % ny : block size along y-direction (second dimension)
+        
+            if nargin < 3
+                error('block_reduce requires nx and ny.')
+            end
+        
+            if nx <= 1 && ny <= 1
+                NEW_DATA = obj;
+                return
+            end
+        
+            NEW_DATA = obj;
+        
+            % Original dimensions
+            Nx = length(obj.x);
+            Ny = length(obj.y);
+        
+            % Ensure divisibility
+            Nx_new = floor(Nx / nx) * nx;
+            Ny_new = floor(Ny / ny) * ny;
+        
+            % Truncate to divisible size
+            x_trunc = obj.x(1:Nx_new);
+            y_trunc = obj.y(1:Ny_new);
+            V_trunc = obj.value(1:Nx_new, 1:Ny_new);
+        
+            % Reshape into blocks:
+            % Dimensions: (nx, Nx_new/nx, ny, Ny_new/ny)
+            V_block = reshape(V_trunc, nx, Nx_new/nx, ny, Ny_new/ny);
+        
+            % Average over block dimensions
+            V_block = squeeze(mean(mean(V_block, 1), 3));
+        
+            % New x-axis (block averaged)
+            x_block = reshape(x_trunc, nx, Nx_new/nx);
+            x_block = mean(x_block, 1);
+        
+            % New y-axis (block averaged)
+            y_block = reshape(y_trunc, ny, Ny_new/ny);
+            y_block = mean(y_block, 1);
+        
+            % Assign to new object
+            NEW_DATA.x = x_block;
+            NEW_DATA.y = y_block;
+            NEW_DATA.value = V_block;
+        
+        end
+
         function SCUT = Gaussian_smoothen(obj,sig_x,sig_y)
             % Gaussian_smoothen: Smoothens the ARPES data using a Gaussian filter.
             % Applies a Gaussian filter with specified standard deviations

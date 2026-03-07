@@ -246,6 +246,70 @@ classdef OxArpes_3D_Data
 
         end
 
+        function NEW_DATA = block_reduce(obj, nx, ny, nz)
+
+            % 3D block averaging with independent block sizes:
+            % nx : block size along x (1st dimension)
+            % ny : block size along y (2nd dimension)
+            % nz : block size along z (3rd dimension)
+        
+            if nargin < 4
+                error('block_reduce requires nx, ny, nz.')
+            end
+        
+            if nx <= 1 && ny <= 1 && nz <= 1
+                NEW_DATA = obj;
+                return
+            end
+        
+            NEW_DATA = obj;
+        
+            % Original dimensions
+            Nx = length(obj.x);
+            Ny = length(obj.y);
+            Nz = length(obj.z);
+        
+            % Ensure divisibility
+            Nx_new = floor(Nx / nx) * nx;
+            Ny_new = floor(Ny / ny) * ny;
+            Nz_new = floor(Nz / nz) * nz;
+        
+            % Truncate axes
+            x_trunc = obj.x(1:Nx_new);
+            y_trunc = obj.y(1:Ny_new);
+            z_trunc = obj.z(1:Nz_new);
+        
+            % Truncate data
+            V_trunc = obj.value(1:Nx_new, 1:Ny_new, 1:Nz_new);
+        
+            % Reshape into blocks:
+            % (nx, Nx_new/nx, ny, Ny_new/ny, nz, Nz_new/nz)
+            V_block = reshape(V_trunc, ...
+                              nx, Nx_new/nx, ...
+                              ny, Ny_new/ny, ...
+                              nz, Nz_new/nz);
+        
+            % Average over block dimensions (1,3,5)
+            V_block = squeeze( mean( mean( mean(V_block,1), 3), 5 ) );
+        
+            % New axes: block-averaged coordinates
+            x_block = reshape(x_trunc, nx, Nx_new/nx);
+            x_block = mean(x_block, 1);
+        
+            y_block = reshape(y_trunc, ny, Ny_new/ny);
+            y_block = mean(y_block, 1);
+        
+            z_block = reshape(z_trunc, nz, Nz_new/nz);
+            z_block = mean(z_block, 1);
+        
+            % Assign
+            NEW_DATA.x = x_block;
+            NEW_DATA.y = y_block;
+            NEW_DATA.z = z_block;
+            NEW_DATA.value = V_block;
+        
+        end
+
         function R_DATA = z_rotate(obj,deg,zero_center)
             % Create Kx, Ky grids
             kx = obj.x;
