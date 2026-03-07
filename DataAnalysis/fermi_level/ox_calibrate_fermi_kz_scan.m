@@ -94,6 +94,7 @@ for ihv = 1:Nhv
             'Resolution', opt.Resolution, ...
             'FixTemperature', ~isempty(opt.Temperature), ...
             'FixResolution', false,...
+            'Fermi0',0,...
             'Debug', false);
 
         if r.isValid
@@ -145,8 +146,8 @@ for ihv = 1:Nhv
 
 end
 
-KZ_corrected = KZ_DATA;
-KZ_corrected.z = E_original - EF_smooth(:)';  
+% KZ_corrected = KZ_DATA;
+% KZ_corrected.z = E_original - EF_smooth(:)';  
 % If z must remain 1D, do not overwrite per hv.
 % Alternative approach below.
 
@@ -157,7 +158,7 @@ KZ_corrected.z = E_original - EF_smooth(:)';
 result.EF_raw = EF_raw;
 result.EF_smooth = EF_smooth;
 result.valid_mask = valid_mask;
-result.data_corrected = KZ_corrected;
+% result.data_corrected = KZ_corrected;
 result.isValid = true;
 
 % -------------------------
