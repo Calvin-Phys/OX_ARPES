@@ -387,6 +387,20 @@ classdef OxArpes_2D_Data
             D2y_CUT.value = D2y(1+w1:L+w1,1+w2:J+w2);
         end
 
+        function NCUT = self_normlaise(obj,dir)
+            NCUT = obj;
+            switch dir
+                case 'x'
+                    ss = mean(obj.value,2);
+                    ss = ss./mean(ss,"all");
+                    NCUT.value = NCUT.value./repmat(ss,1,size(NCUT.value,2));
+                case 'y'
+                    ss = mean(obj.value,1);
+                    ss = ss./mean(ss,"all");
+                    NCUT.value = NCUT.value./repmat(ss,size(NCUT.value,1),1);
+            end
+        end
+
         % others
         function dx = get_dx(obj)
             nx = length(obj.x);
