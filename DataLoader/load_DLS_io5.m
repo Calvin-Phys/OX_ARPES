@@ -56,10 +56,12 @@ function DATA = load_DLS_io5(file_path)
             % y = 4.5 - [0.0581 0.0585 0.0643 0.0559 0.0313 0.0176 0.0126];
             workfunction = interp1(x,y,photon_energy,'makima','extrap');
             % workfunction = 4.5 + 0.*photon_energy;
-        else
+        elseif year(t)<2026
             x = [20 40 60 80 100 120 140 160];
             y = 4.5 - [0.034 0.0239 0.0067 -0.0023 -0.0184 -0.0505 -0.0738 -0.123];
             workfunction = interp1(x,y,photon_energy,'makima','extrap');
+            % workfunction = 4.45 + 0.*photon_energy;
+        else
             workfunction = 4.45 + 0.*photon_energy;
         end
     catch
