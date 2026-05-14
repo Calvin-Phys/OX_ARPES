@@ -62,7 +62,9 @@ function DATA = load_DLS_io5(file_path)
             workfunction = interp1(x,y,photon_energy,'makima','extrap');
             % workfunction = 4.45 + 0.*photon_energy;
         else
-            workfunction = 4.45 + 0.*photon_energy;
+            x = [40 80 120 150 180];
+            y = 4.45 - [0 -0.03 -0.053 -0.0674 -0.113];
+            workfunction = interp1(x,y,photon_energy,'makima','extrap');
         end
     catch
         workfunction = 4.8;
@@ -242,7 +244,7 @@ function DATA = load_DLS_io5(file_path)
     end
 
     % ------- add Info
-    DATA.info.workfunction = workfunction;
+    DATA.info.workfunction = mean(workfunction);
     DATA.info.photon_energy = h5read(file_path,'/entry1/instrument/monochromator/energy');
     DATA.info.polarization = h5read(file_path,'/entry1/instrument/insertion_device/beam/final_polarisation_label');
     DATA.info.acquisition_mode = h5read(file_path,'/entry1/instrument/analyser/acquisition_mode');
@@ -250,7 +252,7 @@ function DATA = load_DLS_io5(file_path)
         DATA.info.acquire_time = h5read(file_path,'/entry1/instrument/analyser/acquire_time');
     catch
     end
-    DATA.info.pass_energy = h5read(file_path,'/entry1/instrument/analyser/pass_energy');
+    DATA.info.pass_energy = double(h5read(file_path,'/entry1/instrument/analyser/pass_energy'));
     try
         DATA.info.center_energy = h5read(file_path,'/entry1/instrument/analyser/kinetic_energy_center');
     catch
