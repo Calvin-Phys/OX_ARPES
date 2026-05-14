@@ -51,7 +51,7 @@ Other Tools:
 
 Usage / Getting Started:
 - This package is being updated periodically as needed
-- It is meant to be become a back-end component of the early ARPES data process software `yulinARPES`.
+- It is meant to be become the new back-end component of the early ARPES data process software `yulinARPES`.
 
 
 ---
