@@ -26,7 +26,7 @@ classdef OxA_KZ < OxArpes_3D_Data
         function KMAP = kconvert(obj,varargin)
         
             % electron mass = 9.1093837 × 10-31 kilograms
-            % hbar = 6.582119569...×10−16 eV⋅s
+            % hbar = 6.582119569...×10-16 eV⋅s
             % k (A-1) = CONST * sqrt(Ek (eV)) * sin(theta)
             CONST = 0.512316722;
             if isempty(varargin)
@@ -108,7 +108,7 @@ classdef OxA_KZ < OxArpes_3D_Data
         function KMAP = kconvert_type2(obj,varargin)
         
             % electron mass = 9.1093837 × 10-31 kilograms
-            % hbar = 6.582119569...×10−16 eV⋅s
+            % hbar = 6.582119569...×10-16 eV⋅s
             % k (A-1) = CONST * sqrt(Ek (eV)) * sin(theta)
             CONST = 0.512316722;
 

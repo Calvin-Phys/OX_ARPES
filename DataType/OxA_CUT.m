@@ -30,7 +30,7 @@ classdef OxA_CUT < OxArpes_2D_Data
             % Returns a new OxA_CUT object with k-space data.
 
             % electron mass = 9.1093837 × 10-31 kilograms
-            % hbar = 6.582119569...×10−16 eV⋅s
+            % hbar = 6.582119569...×10-16 eV⋅s
             % k (A-1) = CONST * sqrt(Ek (eV)) * sin(theta)
             CONST = 0.512316722;
 
