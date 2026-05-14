@@ -50,7 +50,7 @@ Other Tools:
 - Data list browser `OxArpes_DataList.mlapp`
 
 Usage / Getting Started:
-- This package is being updated periodically as needed
+- This package is being updated periodically as needed.
 - It is meant to be become the new back-end component of the early ARPES data process software `yulinARPES`.
 
 
