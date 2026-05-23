@@ -85,7 +85,11 @@ function DATA = load_SSRL_BL52(file_path)
 
         zn = h5readatt(file_path,'/Data/Axes0','Count');
         % dz = h5readatt(file_path,'/Data/Axes0','Delta');
-        dz = mean(h5read(file_path,'/MapInfo/Data:Axes0:Delta'));
+        try
+            dz = mean(h5read(file_path,'/MapInfo/Data:Axes0:Delta'));
+        catch
+            dz = h5readatt(file_path,'/Data/Axes0','Delta');
+        end
         z0_ = h5read(file_path,'/MapInfo/Data:Axes0:Offset');
         z0 = mean(z0_- x + h5readatt(file_path,'/UserSettings','WorkFunction'));
 
@@ -102,7 +106,7 @@ function DATA = load_SSRL_BL52(file_path)
         DATA.y_unit = y_unit;
         DATA.y_name = y_label;
         DATA.z_unit = z_unit;
-        DATA.z_name = '{\it E}-{\it E}_F';
+        DATA.z_name = '{\itE} - {\itE}_F';
     else
         DATA = [];
     end
