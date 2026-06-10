@@ -27,6 +27,7 @@ Data types included:
 Supported Beamlines:
 - Beamlines with Scienta Omicron Analyser 
     - using SES software `DataLoader/load_scienta_txt.m`, `DataLoader/load_scienta_zip.m`, `DataLoader/load_scienta_IBW.m`
+        - spin ARPES `DataLoader/load_solaris_spin_zip.m`
     - using PEAK software `DataLoader/load_scienta_IBW.m`
 - Diamond Light Source 
     - i05 `DataLoader/load_DLS_io5.m`
