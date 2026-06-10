@@ -126,7 +126,11 @@ function data = load_data_by_ext(filepath, ext)
                 data = load_scienta_txt(filepath);
             end
         case '.zip'
-            data = load_scienta_zip(filepath);
+            try
+                data = load_scienta_zip(filepath);
+            catch
+                data = load_solaris_spin_zip(filepath);
+            end
         case '.hdf5'
             data = load_Elettra_Spectromicroscopy(filepath);
         case '.h5'
