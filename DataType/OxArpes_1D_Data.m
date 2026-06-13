@@ -20,8 +20,13 @@ classdef OxArpes_1D_Data
             %OXARPES_1D_DATA Construct an instance of this class
             %   Detailed explanation goes here
             obj.name = '1D scan';
-            obj.x = varargin{1};
-            obj.value = varargin{2};
+            if isempty(varargin)
+                obj.x = [];
+                obj.value = [];
+            else
+                obj.x = varargin{1};
+                obj.value = varargin{2};
+            end
         end
 
         function show(obj)

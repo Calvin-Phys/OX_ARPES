@@ -1,8 +1,8 @@
 function DATA = load_solaris_spin_zip(file_path)
-%LOAD_SCIENTA_SPIN_ZIP Load spin-ARPES data from a Scienta zip file.
+%LOAD_SOLARIS_SPIN_ZIP Load spin-ARPES data from a Solaris/Scienta zip file.
 %
 % Each channel field contains:
-%   - x, y, and optionally z
+%   - x, optionally y, optionally z
 %   - value
 %   - region, channel, name, path
 
@@ -17,19 +17,24 @@ function DATA = load_solaris_spin_zip(file_path)
     viewer_ini = read_ini_file(viewer_path);
 
     current_region = strtrim(ini_get(viewer_ini, 'viewer', 'current_region'));
-    region_section  = ['viewer.' current_region];
+    region_section = ['viewer.' current_region];
 
     channel_list_raw = ini_get(viewer_ini, region_section, 'channel_list');
     channel_list = split_semicolon_list(channel_list_raw);
 
     region_name = strtrim(ini_get(viewer_ini, region_section, 'name'));
     meta_path = fullfile(folder_path, [region_name '.ini']);
-    meta_ini = read_ini_file(meta_path);
+
+    % This is currently unused, but keep it if you may need metadata later.
+    meta_ini = read_ini_file(meta_path); %#ok<NASGU>
+
+    [~, file_stem, ~] = fileparts(file_path);
 
     % Preallocate output struct
     DATA = struct();
 
     for i = 1:numel(channel_list)
+
         channel = strtrim(channel_list{i});
         if isempty(channel)
             continue;
@@ -41,60 +46,123 @@ function DATA = load_solaris_spin_zip(file_path)
         data_rel = strtrim(ini_get(viewer_ini, channel_section, 'path'));
         data_path = resolve_zip_path(folder_path, data_rel);
 
-        name   = strtrim(ini_get(viewer_ini, channel_section, 'name'));
-        width  = str2double(ini_get(viewer_ini, channel_section, 'width'));
-        depth  = str2double(ini_get(viewer_ini, channel_section, 'depth'));
+        name = strtrim(ini_get(viewer_ini, channel_section, 'name'));
+
+        width = str2double(ini_get(viewer_ini, channel_section, 'width'));
+        width_offset = str2double(ini_get(viewer_ini, channel_section, 'width_offset'));
+        width_delta = str2double(ini_get(viewer_ini, channel_section, 'width_delta'));
+        width_label_raw = ini_get(viewer_ini, channel_section, 'width_label');
+        [width_name, width_unit] = parse_axis_label(width_label_raw);
+
+        depth = str2double(ini_get(viewer_ini, channel_section, 'depth'));
+        depth_offset = str2double(ini_get(viewer_ini, channel_section, 'depth_offset'));
+        depth_delta = str2double(ini_get(viewer_ini, channel_section, 'depth_delta'));
+        depth_label_raw = ini_get(viewer_ini, channel_section, 'depth_label');
+        [depth_name, depth_unit] = parse_axis_label(depth_label_raw);
+
         height = str2double(ini_get(viewer_ini, channel_section, 'height'));
+        height_offset = str2double(ini_get(viewer_ini, channel_section, 'height_offset'));
+        height_delta = str2double(ini_get(viewer_ini, channel_section, 'height_delta'));
+        height_label_raw = ini_get(viewer_ini, channel_section, 'height_label');
+        [height_name, height_unit] = parse_axis_label(height_label_raw);
 
-        % Axes from the region metadata ini
-        thx_low  = str2double(ini_get(meta_ini, 'Run Mode Information', 'Thetax_Low'));
-        thx_high = str2double(ini_get(meta_ini, 'Run Mode Information', 'Thetax_High'));
-        thy_low  = str2double(ini_get(meta_ini, 'Run Mode Information', 'Thetay_Low'));
-        thy_high = str2double(ini_get(meta_ini, 'Run Mode Information', 'Thetay_High'));
-        e_low    = str2double(ini_get(meta_ini, 'SES', 'Low Energy'));
-        e_high   = str2double(ini_get(meta_ini, 'SES', 'High Energy'));
+        % Axis convention:
+        %   depth  -> angle_y
+        %   width  -> energy
+        %   height -> angle_x
+        angle_x = height_offset + height_delta * (0:(height - 1));
+        angle_y = depth_offset  + depth_delta  * (0:(depth  - 1));
+        energy  = width_offset  + width_delta  * (0:(width  - 1));
 
-        angles_x = linspace(thx_low, thx_high, width);
-        angles_y = linspace(thy_low, thy_high, depth);
-        energies = linspace(e_low, e_high, height);
+        axis_values = {angle_y, energy, angle_x};
+        axis_names  = {depth_name, width_name, height_name};
+        axis_units  = {depth_unit, width_unit, height_unit};
+
+        dims = [depth, width, height];
 
         % Read binary data
         values = read_binary_data(data_path);
 
-        % Match NumPy reshape(order='C') behaviour used in the Python code
-        if depth == 1
-            % Python:
-            % values.reshape(height, width)
-            %
-            % MATLAB equivalent:
-            % reshape to [width, height] then transpose
-            value = reshape(values, [width, height]).';
-
-            out = struct();
-            out.x = angles_x;     % cut direction
-            out.y = energies;
-            out.value = value;
-
-        else
-            % Python:
-            % values.reshape(depth, width, height)
-            %
-            % MATLAB equivalent:
-            % reshape to [height, width, depth] then permute
-            value = reshape(values, [height, width, depth]);
-            value = permute(value, [3 2 1]);
-
-            out = struct();
-            out.x = angles_y;
-            out.y = angles_x;    % cut direction
-            out.z = energies;
-            out.value = value;
+        expected_numel = depth * width * height;
+        if numel(values) ~= expected_numel
+            error('Channel "%s" has %d data points, but expected %d from depth*width*height.', ...
+                channel, numel(values), expected_numel);
         end
 
-        out.region = current_region;
-        out.channel = channel;
-        out.name = name;
-        out.path = data_rel;
+        % Match NumPy reshape(order='C') behaviour:
+        %
+        % Python:
+        %   values.reshape(depth, width, height)
+        %
+        % MATLAB equivalent:
+        %   reshape as [height, width, depth], then permute to [depth, width, height].
+        value_3d = reshape(values, [width, depth, height]);
+        % value_3d = permute(value_3d, [2 1 3]);
+
+        active_dims = find(dims > 1);
+        value_dim = numel(active_dims);
+
+        switch value_dim
+
+            case 1
+                out = OxArpes_1D_Data();
+
+                ax = active_dims(1);
+
+                out.x = axis_values{ax};
+                out.x_name = axis_names{ax};
+                out.x_unit = axis_units{ax};
+
+                out.value = squeeze(value_3d);
+                out.value = out.value(:);
+
+                out.v_name = 'Counts';
+                out.v_unit = 'arb. unit';
+
+            case 2
+                out = OxA_CUT();
+
+                ax1 = active_dims(2);
+                ax2 = active_dims(1);
+
+                out.x = axis_values{ax1};
+                out.x_name = axis_names{ax1};
+                out.x_unit = axis_units{ax1};
+
+                out.y = axis_values{ax2};
+                out.y_name = axis_names{ax2};
+                out.y_unit = axis_units{ax2};
+
+                out.value = squeeze(value_3d)';
+
+            case 3
+                % If OxA_MAP supports the constructor used in your regular loader:
+                out = OxA_MAP(axis_values{1}, axis_values{2}, axis_values{3}, value_3d);
+
+                % Add axis labels if these properties exist in your class.
+                % If OxA_MAP does not support these properties, remove this block.
+                out.x_name = axis_names{1};
+                out.x_unit = axis_units{1};
+
+                out.y_name = axis_names{2};
+                out.y_unit = axis_units{2};
+
+                out.z_name = axis_names{3};
+                out.z_unit = axis_units{3};
+
+                out.v_name = 'Counts';
+                out.v_unit = 'arb. unit';
+
+            otherwise
+                error('Channel "%s" has no non-singleton data dimension.', channel);
+
+        end
+
+        % Optional metadata
+        out.info.region = current_region;
+        out.info.channel = channel;
+        out.info.name = name;
+        out.info.path = data_rel;
 
         fieldname = matlab.lang.makeValidName(sprintf('%s_%s_%s', current_region, channel, name));
         if isfield(DATA, fieldname)
@@ -103,11 +171,29 @@ function DATA = load_solaris_spin_zip(file_path)
 
         DATA.(fieldname) = out;
 
-        % Also create a variable in the base workspace
-        [~, file_stem, ~] = fileparts(file_path);
+        % Also create a variable in the base workspace:
+        % name = [file_name '_' channel]
         base_var_name = matlab.lang.makeValidName([file_stem '_' channel]);
-        assignin('base', base_var_name, OxA_CUT(out));
+        assignin('base', base_var_name, out);
+
     end
+
+end
+
+function [axis_name, axis_unit] = parse_axis_label(label_raw)
+
+    label_raw = strtrim(label_raw);
+
+    tok = regexp(label_raw, '^(.*?)\s*\[(.*?)\]\s*$', 'tokens', 'once');
+
+    if isempty(tok)
+        axis_name = label_raw;
+        axis_unit = '';
+    else
+        axis_name = strtrim(tok{1});
+        axis_unit = strtrim(tok{2});
+    end
+
 end
 
 % -------------------------------------------------------------------------
