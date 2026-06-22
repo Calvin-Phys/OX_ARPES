@@ -38,7 +38,7 @@ classdef OxArpes_3D_Data
         % show / display
         function show(obj)
 
-            UI = OxArpes_DataViewer(obj);
+            UI = OxArpes_DataViewer_3D(obj);
 
         end
 
