@@ -169,7 +169,7 @@ function DATA = load_DLS_io5(file_path)
         DATA = OxArpes_1D_Data(x,value);
         DATA.x_name = 'say';
         DATA.x_unit = 'mm';
-    elseif contains(title,'scan sax')
+    elseif contains(title,'scan sax') && ~contains(title,'saz')
         x = flip(h5read(file_path,'/entry1/analyser/sax'));
         try
             value = h5read(file_path,'/entry1/analyser/analyser');
