@@ -173,7 +173,7 @@ function DATA = load_solaris_spin_zip(file_path)
 
         % Also create a variable in the base workspace:
         % name = [file_name '_' channel]
-        base_var_name = matlab.lang.makeValidName([file_stem '_' channel]);
+        base_var_name = matlab.lang.makeValidName([file_stem '_' channel '_' name]);
         assignin('base', base_var_name, out);
 
     end
