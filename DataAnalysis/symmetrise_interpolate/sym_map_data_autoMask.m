@@ -93,12 +93,12 @@ function [new_data, debug] = sym_map_data_autoMask_padded(data, opts)
         accV = zeros(numel(x), numel(y));
         accW = zeros(numel(x), numel(y));
 
-        for dd = [0,180]
-            Y_ = cosd(dd)*Y + sind(dd)*X;
+        for dd = [0, 120, 240]
+            Y_ = +cosd(dd)*Y + sind(dd)*X;
             X_ = -sind(dd)*Y + cosd(dd)*X;
 
-            Y_2 = cosd(dd)*Y - sind(dd)*X;
-            X_2 = -sind(dd)*Y - cosd(dd)*X;
+            Y_2 = -cosd(dd)*Y + sind(dd)*X;
+            X_2 = +sind(dd)*Y + cosd(dd)*X;
 
             [v1, w1] = sample_with_weights(x_in, y_in, I, W0,  X_,  Y_, opts.interp_method);
             [v2, w2] = sample_with_weights(x_in, y_in, I, W0,  X_2,  Y_2, opts.interp_method);
