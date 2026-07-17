@@ -53,6 +53,23 @@ function DATA = load_DLS_io5_nano(file_path)
             y = h5read(file_path,'/entry1/analyser/angles');
             z = mean(h5read(file_path,'/entry1/analyser/energies'),2);
             DATA = OxA_KZ(x,y,z,value);
+
+        % 2D scan
+        elseif (contains(title,'scan') && contains(title,'smx') && contains(title,'smy'))
+            x = mean(flip(h5read(file_path,'/entry1/analyser/smx')),1)';
+            y = mean(h5read(file_path,'/entry1/analyser/smy'),2);
+            z = mean(h5read(file_path,'/entry1/analyser/energies'),[2 3]);
+            k = h5read(file_path,'/entry1/analyser/angles');
+            value = permute(h5read(file_path,'/entry1/analyser/data'),[4 3 2 1]);
+            DATA = OxArpes_4D_Data(x,y,z,k,value);
+            DATA.x_name = 'smx';
+            DATA.x_unit = 'mm';
+            DATA.y_name = 'smy';
+            DATA.y_unit = 'mm';
+            DATA.k_name = 'angle';
+            DATA.k_unit = 'deg';
+            DATA.z_name = 'kinetic Energy';
+            DATA.z_unit = 'eV';
     
         else
             DATA = [];
