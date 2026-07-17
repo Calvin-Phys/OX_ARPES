@@ -1,4 +1,4 @@
-function DATA = load_DLS_io5(file_path)
+function DATA = load_DLS_io5_HR(file_path)
 %LOAD_DLS_IO5 Summary of this function goes here
 %   Detailed explanation goes here
     

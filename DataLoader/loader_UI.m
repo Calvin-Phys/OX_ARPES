@@ -148,19 +148,23 @@ function data = load_data_by_ext(filepath, ext)
             end
 
         case '.nxs'
-            try
-                data = load_DLS_io5(filepath);
-            catch
-                try
-                    data = load_ALBA_LOREA(filepath);
-                catch
-                    try
-                        data = load_DLS_io9_kPEEM(filepath);
-                    catch
-                        data = load_DLS_io9_HAXPES(filepath);
-                    end
-                end
-            end
+            % try
+            %     data = load_DLS_io5_HR(filepath);
+            % catch
+            %     try
+            %         data = load_ALBA_LOREA(filepath);
+            %     catch
+            %         try
+                        data = load_DLS_io5_nano(filepath);
+            %         catch
+            %             try
+            %                 data = load_DLS_io9_kPEEM(filepath);
+            %             catch
+            %                 data = load_DLS_io9_HAXPES(filepath);
+            %             end
+            %         end
+            %     end
+            % end
         case '.ibw'
             data = load_scienta_IBW(filepath);
         case '.itx'
