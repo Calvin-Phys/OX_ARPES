@@ -1,11 +1,11 @@
-k = 7;
+k = 4;
 
-[idxMap, U, C, objHist, info] = fcm_cluster_4d(i05_178697_RD.value, k, 'correlation', 2.0, 200, 1e-5);
+[idxMap, U, C, objHist, info] = fcm_cluster_4d(i05_1_63704_RD.value, k, 'correlation', 2.0, 200, 1e-5);
 % or
 % [idxMap, U, C, objHist, info] = fcm_cluster_4d(i05_178697_RD.value, k, 'cosine', 2.0, 200, 1e-5);
 
 figure;
-imagesc(i05_178697_RD.x,i05_178697_RD.y,idxMap.');
+imagesc(i05_1_63704_RD.x,i05_1_63704_RD.y,idxMap.');
 axis image;
 set(gca, 'YDir', 'normal');
 colorbar;
