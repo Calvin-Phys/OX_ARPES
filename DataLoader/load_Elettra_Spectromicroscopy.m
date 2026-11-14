@@ -1,6 +1,8 @@
 function DATA = load_Elettra_Spectromicroscopy(file_path)
-    %LOAD_ELETTRA_SPECTROMICROSCOPY Summary of this function goes here
-    %   Detailed explanation goes here
+    %LOAD_ELETTRA_SPECTROMICROSCOPY Read Elettra spectromicroscopy HDF5 data.
+    %   Uses the acquisition-type and dimension attributes to create a real-
+    %   space image or an angular spectrum/map. Unsupported types warn and
+    %   return [] before work-function metadata is added.
     
     data_info = h5info(file_path);
     
@@ -11,8 +13,6 @@ function DATA = load_Elettra_Spectromicroscopy(file_path)
     Dim0_value = data_info.Datasets.Attributes(find(contains({data_info.Datasets.Attributes.Name},'Dim0 Values'))).Value;
     Dim1_value = data_info.Datasets.Attributes(find(contains({data_info.Datasets.Attributes.Name},'Dim1 Values'))).Value;
     Dim2_value = data_info.Datasets.Attributes(find(contains({data_info.Datasets.Attributes.Name},'Dim2 Values'))).Value;
-
-    DATA = [];
 
     if strcmp(data_type,'Image')
         value = permute(double(value),[2,1,3]);
@@ -37,6 +37,11 @@ function DATA = load_Elettra_Spectromicroscopy(file_path)
         DATA.x_name = 'Kinetic Energy';
         DATA.x_unit = 'eV';
 
+    else
+        warning('OxArpes:UnsupportedElettraType', ...
+            'Unsupported Elettra acquisition type "%s".', char(string(data_type)));
+        DATA = [];
+        return
     end
 
     % ------------- add info

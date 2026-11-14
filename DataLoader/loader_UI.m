@@ -1,274 +1,178 @@
-function loader_UI(varargin)
-    % load ARPES data to pre-defined class object.
-    % input can be: empty - prompt UI window to select files
-    % a single file path - load the file
-    % a cell of file paths - load all the files
+function [loaded, reports] = loader_UI(varargin)
+%LOADER_UI Load ARPES files from a picker or from a script.
+%   LOADER_UI() opens the file picker, shows a waitbar, and assigns loaded
+%   results to the base workspace for interactive compatibility.
+%
+%   DATA = LOADER_UI(PATHS) loads one path or a cell/string array of paths.
+%   Script calls return data and do not show a waitbar or assign to the base
+%   workspace by default.
+%
+%   Name-value options:
+%     'Progress'      'none' (default for scripts), 'text', or 'waitbar'
+%     'AssignToBase'  true/false (defaults to true only for picker use)
+%     'Format'        Loader name or 'auto', passed to load_arpes
+%     'Validate'      Validate returned OX data objects (default true)
+%
+%   For multiple files, LOADED and REPORTS are cell arrays in input order.
+%   MAT files are returned as structures; when AssignToBase is true, each
+%   variable in the MAT file is assigned individually.
 
-    % memorize last opened directory
-    persistent lastPath Path
-    if isempty(lastPath) 
-        lastPath = 0;
-    end
+    guiStart = isempty(varargin);
+    if guiStart
+        persistent lastPath
+        if isempty(lastPath)
+            lastPath = pwd;
+        end
 
-    %% obtain the file list
-    if ~isempty(varargin)
-        % [~, file, ext] = fileparts(varargin{1});
-        if iscell(varargin{1})
-            file_list = varargin{1};
-        elseif isfile(varargin{1})
-            file_list = {varargin{1}};
+        [selectedFiles, selectedPath] = uigetfile_with_lastpath(lastPath);
+        if isequal(selectedFiles, 0) || isequal(selectedPath, 0)
+            loaded = {};
+            reports = {};
+            return
+        end
+        lastPath = selectedPath;
+
+        if iscell(selectedFiles)
+            filePaths = cellfun(@(name) fullfile(selectedPath, name), ...
+                selectedFiles, 'UniformOutput', false);
         else
-            return
+            filePaths = {fullfile(selectedPath, selectedFiles)};
         end
-        
-        if isempty(file_list)
-            return
-        end
-
+        optionArgs = {};
     else
-        % select folder
-        if lastPath == 0
-            [file, Path] = uigetfile_with_lastpath(pwd);
-        else
-            [file, Path] = uigetfile_with_lastpath(lastPath);
-        end
-    
-        % empty
-        if Path == 0
-            return
-        else
-            lastPath = Path;
-        end
-
-        file_list = {};
-        
-        if ~iscell(file)
-            % one file
-            file_list = {fullfile(Path, file)};
-        else
-            for i = 1:length(file)
-                file_list{i} = fullfile(Path, file{i});
-            end
-        end
-
+        filePaths = normalize_file_paths(varargin{1});
+        optionArgs = varargin(2:end);
     end
 
-    %% load and assign data
+    parser = inputParser;
+    addParameter(parser, 'Progress', default_progress(guiStart), ...
+        @(value) ischar(value) || (isstring(value) && isscalar(value)));
+    addParameter(parser, 'AssignToBase', guiStart, ...
+        @(value) islogical(value) && isscalar(value));
+    addParameter(parser, 'Format', 'auto', ...
+        @(value) ischar(value) || (isstring(value) && isscalar(value)));
+    addParameter(parser, 'Validate', true, ...
+        @(value) islogical(value) && isscalar(value));
+    parse(parser, optionArgs{:});
 
-
-    N = length(file_list);
-
-    % multiply file
-    f = waitbar(0, '');
-    f.Children.Title.Interpreter = 'none';
-
-    % close the waitbar when exiting
-    cleanupObj = onCleanup(@() close(f));
-
-    for i = 1:N
-        % get file name and ext
-        filename = file_list{i};
-        [~, basename, ext] = fileparts(filename);
-
-        waitbar(i/N, f, append('Loading selected data [', basename, ext, '] ... ', num2str(i), '/', num2str(N)));
-
-        % Simplify the string replacements for the basename variable
-        if contains(basename,'-')
-            basename = strrep(basename,'-','_');
-        end
-        if contains(basename,' ')
-            basename = strrep(basename,' ','_');
-        end
-        if all(ismember(basename(1), '0123456789'))
-            basename = ['A' basename];
-        end
-
-
-        % Call the separate function to handle file extensions and loading functions
-        data = load_data_by_ext(filename, ext);
-
-        % assign the data to base workspace
-        if ~isempty(data)
-            data.name = basename;
-            assignin('base', basename, data);
-        end
+    progressMode = lower(char(parser.Results.Progress));
+    if ~ismember(progressMode, {'none','text','waitbar'})
+        error('OxArpes:InvalidProgressMode', ...
+            'Progress must be ''none'', ''text'', or ''waitbar''.');
+    end
+    if ~guiStart && strcmp(progressMode, 'waitbar')
+        error('OxArpes:WaitbarRequiresGUI', ...
+            'The waitbar is available only when loader_UI starts the file picker.');
     end
 
-%     close(f)
-end
+    numFiles = numel(filePaths);
+    loadedItems = cell(1, numFiles);
+    reports = cell(1, numFiles);
+    waitbarHandle = [];
 
-function [file, path] = uigetfile_with_lastpath(lastPath_)
-    [file, path] = uigetfile({'*.*', 'All Files (*.*)'; ...
-                              '*.txt;*.zip', 'Scienta CUT/MAP (*.txt, *.zip)'; ...
-                              '*.hdf5', 'Elettra Nano (*.hdf5)'; ...
-                              '*.h5', 'SSRL BL5-2; PSI ULTRA/ADRESS (*.h5)'; ...
-                              '*.nxs', 'DLS io5/9; ALBA LOREA (*.nxs)'; ...
-                              '*.ibw', 'Igor binary wave (*.ibw)'; ...
-                              '*.itx', 'Specs itx (*.itx)';...
-                              '*.fits', 'ALS Maestro fits (*.fits)';...
-                              '*.krx', 'ALBA LOREA Spin (*.krx)';...
-                              '*.mat', 'MAT-files (*.mat)'}, ...
-                              'Select One or More Files', 'MultiSelect', 'on', lastPath_);
-end
+    if strcmp(progressMode, 'waitbar')
+        waitbarHandle = waitbar(0, 'Preparing to load ARPES data...');
+        waitbarHandle.Children.Title.Interpreter = 'none';
+        waitbarCleanup = onCleanup(@() close_waitbar(waitbarHandle)); %#ok<NASGU>
+    end
 
-function data = load_data_by_ext(filepath, ext)
-    % Replace the if...elseif... block with a switch block
-    switch ext
-        case '.mat'
-            evalin('base', append("load('", filepath, "');"));
-            data = [];
-        case '.txt'
-            if endsWith(filepath, '_ROI1_.txt')
-                data = load_Soleil_Cassiopee(filepath);
-            elseif endsWith(filepath, '_i.txt')
-                data = load_Soleil_Cassiopee_folder(filepath);
-            else
-                data = load_scienta_txt(filepath);
-            end
-        case '.zip'
-            try
-                data = load_scienta_zip(filepath);
-            catch
-                data = load_solaris_spin_zip(filepath);
-            end
-        case '.hdf5'
-            data = load_Elettra_Spectromicroscopy(filepath);
-        case '.h5'
-            try
-                h5readatt(filepath,'/UserSettings','Location');
-                flg = 0;
-            catch
-                flg = 1;
-            end
-                
-            if flg == 0
-                data = load_SSRL_BL52(filepath);
-            else
-                data = load_PSI_ULTRA(filepath);
-            end
+    for iFile = 1:numFiles
+        filePath = filePaths{iFile};
+        [~, baseName, extension] = fileparts(filePath);
+        message = sprintf('Loading %s (%d/%d)', [baseName extension], iFile, numFiles);
 
-        case '.nxs'
-            try
-                data = load_DLS_io5_HR(filepath);
-            catch
-                try
-                    data = load_ALBA_LOREA(filepath);
-                catch
-                    try
-                        data = load_DLS_io5_nano(filepath);
-                    catch
-                        try
-                            data = load_DLS_io9_kPEEM(filepath);
-                        catch
-                            data = load_DLS_io9_HAXPES(filepath);
-                        end
-                    end
+        if strcmp(progressMode, 'waitbar') && isgraphics(waitbarHandle)
+            waitbar(iFile / numFiles, waitbarHandle, message);
+        elseif strcmp(progressMode, 'text')
+            fprintf('%s\n', message);
+        end
+
+        [data, reports{iFile}] = load_arpes(filePath, ...
+            'Format', parser.Results.Format, 'Validate', parser.Results.Validate);
+        loadedItems{iFile} = data;
+
+        if parser.Results.AssignToBase && ~isempty(data)
+            if strcmpi(extension, '.mat') && isstruct(data)
+                variableNames = fieldnames(data);
+                for iName = 1:numel(variableNames)
+                    assignin('base', variableNames{iName}, data.(variableNames{iName}));
                 end
+            else
+                if isobject(data) && isprop(data, 'name')
+                    data.name = matlab.lang.makeValidName(baseName);
+                    loadedItems{iFile} = data;
+                end
+                assignin('base', matlab.lang.makeValidName(baseName), data);
             end
-        case '.ibw'
-            data = load_scienta_IBW(filepath);
-        case '.itx'
-            data = load_Specs_itx(filepath);
-        case '.fits'
-            data = load_ALS_Maestro_fits(filepath);
-        case '.krx'
-            try
-                data = load_ALBA_krx(filepath);
-            catch
-                data = load_ALBA_krx_S(filepath);
-            end
-        otherwise
-            warning(['Fail to load ' filepath '. Check data type.']);
-            data = [];
+        end
+    end
+
+    if numFiles == 1
+        loaded = loadedItems{1};
+        reports = reports{1};
+    else
+        loaded = loadedItems;
     end
 end
 
+function mode = default_progress(guiStart)
+%DEFAULT_PROGRESS Select waitbar progress for picker use, none for scripts.
+    if guiStart
+        mode = 'waitbar';
+    else
+        mode = 'none';
+    end
+end
 
+function filePaths = normalize_file_paths(inputPaths)
+%NORMALIZE_FILE_PATHS Convert supported path inputs to a row cell array.
+    if ischar(inputPaths) || (isstring(inputPaths) && isscalar(inputPaths))
+        filePaths = {char(inputPaths)};
+    elseif isstring(inputPaths)
+        filePaths = cellstr(inputPaths(:)).';
+    elseif iscell(inputPaths)
+        filePaths = cell(1, numel(inputPaths));
+        for iPath = 1:numel(inputPaths)
+            item = inputPaths{iPath};
+            if ~(ischar(item) || (isstring(item) && isscalar(item)))
+                error('OxArpes:InvalidPathInput', ...
+                    'Each path must be a character vector or scalar string.');
+            end
+            filePaths{iPath} = char(item);
+        end
+    else
+        error('OxArpes:InvalidPathInput', ...
+            'Paths must be a character vector, string array, or cell array of paths.');
+    end
 
-% function loader_UI(varargin)
-% % load ARPES data to pre-defined class object.
-% 
-%     % memorize last opened directory
-%     persistent lastPath path
-%     if isempty(lastPath) 
-%         lastPath = 0;
-%     end
-%     
-%     % select folder
-%     if lastPath == 0
-%         [file,path] = uigetfile({'*.*','All Files (*.*)'; '*.txt;*.zip','Scienta CUT/MAP (*.txt, *.zip)'; ...
-%             '*.hdf5','Elettra Nano (*.hdf5)';'*.h5','PSI ULTRA/ADRESS (*.h5)';'*.nxs','DLS io5 (*.nxs)'; ...
-%             '*.ibw','Bessy 1^3 (*.ibw)';'*.mat','MAT-files (*.mat)' }, ...
-%             'Select One or More Files','MultiSelect', 'on');
-%     else 
-%         [file,path] = uigetfile({'*.*','All Files (*.*)'; '*.txt;*.zip','Scienta CUT/MAP (*.txt, *.zip)'; ...
-%             '*.hdf5','Elettra Nano (*.hdf5)';'*.h5','PSI ULTRA/ADRESS (*.h5)';'*.nxs','DLS io5 (*.nxs)'; ...
-%             '*.ibw','Bessy 1^3 (*.ibw)';'*.mat','MAT-files (*.mat)' }, ...
-%             'Select One or More Files','MultiSelect', 'on',lastPath);
-%     end
-% 
-%     % empty
-%     if path == 0
-%         return
-%     else
-%         lastPath = path;
-%     end
-% 
-%     % one file
-%     if ~iscell(file)
-%         file = {file};
-%     end
-%     N = length(file);
-% 
-%     % multiply file
-%     f = waitbar(0,'');
-%     f.Children.Title.Interpreter = 'none';
-% 
-% %     tic
-%     for i = 1:N
-% 
-%         % get file name and ext
-%         filename = file{i};
-%         [~,basename,ext] = fileparts(filename);
-% 
-%         waitbar(i/N,f,['Loading selected data [', filename ,'] ... ',num2str(i),'/',num2str(N)]);
-% 
-%         if strcmp(ext,'.mat')
-%             evalin('base',append("load('",fullfile(path, filename),"');"));
-%             continue
-%         end
-% 
-%         if strcmp(ext,'.txt')
-%             data = load_scienta_txt_fast(fullfile(path, filename));
-%         elseif strcmp(ext,'.zip')
-%             data = load_scienta_zip_fast(fullfile(path, filename));
-%         elseif strcmp(ext,'.hdf5')
-%             data = load_Elettra_Spectromicroscopy(fullfile(path, filename));
-%         elseif strcmp(ext,'.h5')
-%             data = load_PSI_ULTRA(fullfile(path, filename));
-%         elseif strcmp(ext,'.nxs')
-%             data = load_DLS_io5(fullfile(path, filename));
-%         elseif strcmp(ext,'.ibw')
-%             data = load_Bessy_IBW(fullfile(path, filename));
-%             
-%         else
-%             warning(['Fail to load ' filename '. Check data type.']);
-%             continue
-%         end
-%         
-%         if contains(basename,'-')
-%             basename = strrep(basename,'-','_');
-%         end
-%         if contains(basename,' ')
-%             basename = strrep(basename,' ','_');
-%         end
-% 
-%         data.name = basename;
-%         assignin('base',basename,data);
-% 
-%         
-%     end
-% %     toc
-% 
-%     close(f)
-% end
+    if isempty(filePaths)
+        error('OxArpes:EmptyPathList', 'At least one file path is required.');
+    end
+    for iPath = 1:numel(filePaths)
+        if isempty(filePaths{iPath}) || ~isfile(filePaths{iPath})
+            error('OxArpes:FileNotFound', 'File not found: %s', filePaths{iPath});
+        end
+    end
+end
+
+function [file, path] = uigetfile_with_lastpath(lastPath)
+%UIGETFILE_WITH_LASTPATH Open the supported-format picker at a chosen folder.
+    [file, path] = uigetfile({'*.*', 'All Files (*.*)'; ...
+        '*.txt;*.zip', 'Scienta CUT/MAP (*.txt, *.zip)'; ...
+        '*.hdf5', 'Elettra Spectromicroscopy (*.hdf5)'; ...
+        '*.h5', 'SSRL; PSI ULTRA; ALS (*.h5)'; ...
+        '*.nxs', 'DLS i05/i09; ALBA LOREA (*.nxs)'; ...
+        '*.ibw', 'Igor binary wave (*.ibw)'; ...
+        '*.itx', 'SPECS Igor text (*.itx)'; ...
+        '*.fits', 'ALS MAESTRO (*.fits)'; ...
+        '*.krx', 'ALBA KRX (*.krx)'; ...
+        '*.mat', 'MAT-files (*.mat)'}, ...
+        'Select One or More Files', 'MultiSelect', 'on', lastPath);
+end
+
+function close_waitbar(handle)
+%CLOSE_WAITBAR Close a waitbar if it is still open.
+    if ~isempty(handle) && isgraphics(handle)
+        close(handle);
+    end
+end

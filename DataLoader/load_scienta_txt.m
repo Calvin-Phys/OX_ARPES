@@ -1,5 +1,7 @@
 function CUT = load_scienta_txt(file_path)
-    % Load 2D data from a Scienta text file and return an OxA_CUT object
+    %LOAD_SCIENTA_TXT Read a 2-D Scienta text export as an OxA_CUT object.
+    %   Header scale and acquisition fields provide axes and instrument
+    %   metadata; the numeric data block supplies the measured intensity.
 
     % Open the file and read all lines
     fileID = fopen(file_path);

@@ -2,19 +2,24 @@ function DATA = load_ALBA_krx(filename, v_3Dflag)
 % LOAD_KRX_DEFLECTOR_MAP Load Scienta Omicron .krx files with 2D or 3D output
 %
 % Usage:
-%   krx = load_krx_deflector_map('file.krx', 0);  % for 2D output
-%   krx = load_krx_deflector_map('file.krx', 1);  % for 3D stack
+%   data = load_ALBA_krx('file.krx');     % auto: 3D if multiple images
+%   data = load_ALBA_krx('file.krx', 0);  % force first-image 2D output
+%   data = load_ALBA_krx('file.krx', 1);  % request a 3D stack
 %
 % Output:
-%   krx - struct with image(s), metadata, axis scaling, and options
+%   An OxA_CUT or OxA_MAP object with parsed KRX axes and scan metadata.
+%   When multiple images are stacked, this reader interprets their index as
+%   the deflector axis. That existing assumption is retained pending a check
+%   against representative files from the beamline.
 
     if nargin < 2
-        v_3Dflag = 0;
+        v_3Dflag = [];
     end
 
     krx = struct();
     fid = fopen(filename, 'rb');
     assert(fid > 0, 'Could not open file.');
+    fileCleanup = onCleanup(@() fclose(fid)); %#ok<NASGU>
 
     % -- Detect 64-bit or 32-bit pointer array --
     fseek(fid, 4, 'bof');
@@ -42,6 +47,12 @@ function DATA = load_ALBA_krx(filename, v_3Dflag)
     krx.n_images = n_images;
     krx.sizeX = image_sizeX;
     krx.sizeY = image_sizeY;
+    if isempty(v_3Dflag)
+        % Preserve the legacy default: multiple images are interpreted as a
+        % deflector scan and returned as a 3-D map.
+        v_3Dflag = n_images > 1;
+    end
+    validateattributes(v_3Dflag, {'logical','numeric'}, {'scalar'});
 
     % -- Read first image header --
     header_offset = (double(image_pos) + image_sizeX * image_sizeY + 1) * 4;
@@ -137,8 +148,6 @@ function DATA = load_ALBA_krx(filename, v_3Dflag)
         end
     end
 
-    fclose(fid);
-
     % -- Output data --
     if v_3Dflag && n_images > 1
         krx.image = image_cube;
@@ -148,14 +157,26 @@ function DATA = load_ALBA_krx(filename, v_3Dflag)
 
     krx.energy = linspace(e0, e1, image_sizeX);
     krx.angle = linspace(x0, x1, image_sizeY);
-    krx.deflector = [y0, y1];  % optional 3rd axis scaling
+    krx.deflector = linspace(y0, y1, n_images);
 
-    DATA = OxA_CUT(krx.angle, krx.energy, krx.image);
+    if v_3Dflag && n_images > 1
+        % The KRX reader defines image order as the map's second (deflector)
+        % axis; retain this interpretation until verified with real files.
+        DATA = OxA_MAP(krx.angle, krx.deflector, krx.energy, krx.image);
+        DATA.x_name = 'Angle';
+        DATA.x_unit = 'deg';
+        DATA.y_name = 'Deflector Angle';
+        DATA.y_unit = 'deg';
+        DATA.z_name = 'Kinetic Energy';
+        DATA.z_unit = 'eV';
+    else
+        DATA = OxA_CUT(krx.angle, krx.energy, krx.image);
+        DATA.x_name = 'Angle';
+        DATA.x_unit = 'deg';
+        DATA.y_name = 'Kinetic Energy';
+        DATA.y_unit = 'eV';
+    end
 
     DATA.info = krx.metadata;
-    DATA.x_name = 'Angle';
-    DATA.x_unit = 'Deg';
-    DATA.y_name = 'Kinetic Energy';
-    DATA.y_unit = 'eV';
 
 end

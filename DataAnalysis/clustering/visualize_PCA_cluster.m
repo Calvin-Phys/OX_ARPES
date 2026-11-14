@@ -9,7 +9,11 @@ function [figCluster, figPCA] = visualize_PCA_cluster( ...
 % Example
 %   visualize_PCA_cluster(DATA_in, result, 4);
 
-    nDisplayedPCs = 4;
+    nDisplayedPCs = min(4, result.pca.nComp);
+    if nDisplayedPCs < 1
+        error('OxArpes:NoPrincipalComponents', ...
+            'The PCA result contains no principal components to display.');
+    end
 
     clusterIndex = find( ...
         [result.clustering.nClusters] == nCluster, 1);

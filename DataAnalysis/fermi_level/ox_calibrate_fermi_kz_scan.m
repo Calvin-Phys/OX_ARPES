@@ -12,6 +12,7 @@ function result = ox_calibrate_fermi_kz_scan(KZ_DATA, varargin)
 %   'Resolution'      (eV FWHM)
 %   'QuantileIndex'   vector of quantile indices (default [1 2 3])
 %   'SmoothSpan'      smoothing span for EF(hv) (default 5)
+%   'FitResolution'   fit Resolution instead of fixing it (default false)
 %   'Debug'           true/false
 %
 % Output struct:
@@ -30,9 +31,26 @@ addParameter(p,'Temperature',[]);
 addParameter(p,'Resolution',[]);
 addParameter(p,'QuantileIndex',[1 2 3]);   % 0.05,0.15,0.25
 addParameter(p,'SmoothSpan',5);
-addParameter(p,'Debug',true);
+addParameter(p,'FitResolution',false);
+addParameter(p,'Debug',false);
 parse(p,varargin{:});
 opt = p.Results;
+
+if ~isempty(opt.Temperature)
+    validateattributes(opt.Temperature, {'numeric'}, {'scalar','real','finite','positive'});
+end
+if ~isempty(opt.Resolution)
+    validateattributes(opt.Resolution, {'numeric'}, {'scalar','real','finite','positive'});
+end
+validateattributes(opt.SmoothSpan, {'numeric'}, {'scalar','integer','positive'});
+validateattributes(opt.FitResolution, {'logical','numeric'}, {'scalar'});
+validateattributes(opt.Debug, {'logical','numeric'}, {'scalar'});
+validateattributes(opt.QuantileIndex, {'numeric'}, ...
+    {'vector','real','finite','integer','positive'});
+if opt.FitResolution && isempty(opt.Temperature)
+    error('OxArpes:InvalidFitOptions', ...
+        'Resolution fitting requires a fixed Temperature.');
+end
 
 result = struct( ...
     'EF_raw', [], ...
@@ -89,13 +107,22 @@ for ihv = 1:Nhv
 
         EDC_bg = squeeze(eid_bkgd(ihv,:,iq));
 
-        r = fit_fermi_edge_ox(E, EDC_bg, ...
-            'Temperature', opt.Temperature, ...
-            'Resolution', opt.Resolution, ...
-            'FixTemperature', ~isempty(opt.Temperature), ...
-            'FixResolution', false,...
-            'Fermi0',0,...
-            'Debug', false);
+        try
+            r = fit_fermi_edge_ox(E, EDC_bg, ...
+                'Temperature', opt.Temperature, ...
+                'Resolution', opt.Resolution, ...
+                'FixTemperature', ~isempty(opt.Temperature), ...
+                'FixResolution', ~logical(opt.FitResolution),...
+                'Fermi0',0,...
+                'Debug', false);
+        catch fitCause
+            if opt.Debug
+                warning('OxArpes:FermiFitFailed', ...
+                    'Fermi fit failed at photon-energy index %d: %s', ...
+                    ihv, fitCause.message);
+            end
+            continue
+        end
 
         if r.isValid
             EF_candidates(end+1) = r.EF; %#ok<AGROW>
@@ -128,37 +155,13 @@ span = opt.SmoothSpan;
 EF_smooth = smoothdata(EF_interp,'movmedian',span);
 
 % -------------------------
-% Build corrected data
-% -------------------------
-
-value_corrected = KZ_DATA.value;
-E_original = KZ_DATA.z;
-
-for ihv = 1:Nhv
-
-    shift = EF_smooth(ihv);
-
-    % Energy shift: adjust axis metadata only
-    % (do NOT resample intensity here)
-
-    % If you prefer rigid shift in energy axis:
-    % nothing to change in value, only axis
-
-end
-
-% KZ_corrected = KZ_DATA;
-% KZ_corrected.z = E_original - EF_smooth(:)';  
-% If z must remain 1D, do not overwrite per hv.
-% Alternative approach below.
-
-% -------------------------
 % Output
 % -------------------------
 
 result.EF_raw = EF_raw;
 result.EF_smooth = EF_smooth;
 result.valid_mask = valid_mask;
-% result.data_corrected = KZ_corrected;
+result.data_corrected = ox_apply_fermi_shift_extended(KZ_DATA, EF_smooth);
 result.isValid = true;
 
 % -------------------------

@@ -1,4 +1,4 @@
-function metrics = cut_similarity_metrics(A, B)
+function metrics = cut_similarity_metrics(A, B, varargin)
 %ARRAY_SIMILARITY Compute similarity metrics between two arrays.
 %
 % Outputs:
@@ -13,6 +13,10 @@ function metrics = cut_similarity_metrics(A, B)
 %   mean_a
 %   mean_b
 %   mean_ratio
+
+    parser = inputParser;
+    addParameter(parser,'Verbose',false,@(x) islogical(x) && isscalar(x));
+    parse(parser,varargin{:});
 
     % Check size
     if ~isequal(size(A.value), size(B.value))
@@ -105,23 +109,25 @@ function metrics = cut_similarity_metrics(A, B)
     metrics.mean_b                 = mean_b;
     metrics.mean_ratio             = mean_ratio;
 
-    %% Print summary
-    fprintf('=========================================\n');
-    fprintf(' Similarity Metrics     : %d elements\n', numel(a));
-    fprintf('=========================================\n');
-    fprintf(' Mean(A)                : %0.6g\n', mean_a);
-    fprintf(' Mean(B)                : %0.6g\n', mean_b);
-    fprintf(' Mean ratio A/B         : %0.6f\n', mean_ratio);
-    fprintf('\n');
-    fprintf(' Cosine similarity      : %+0.6f\n', cosine_similarity);
-    fprintf(' Pearson correlation    : %+0.6f\n', pearson_correlation);
-    fprintf(' Spearman correlation   : %+0.6f\n', spearman_correlation);
-    fprintf('\n');
-    fprintf(' Norm(A)                : %0.6g\n', norm_a);
-    fprintf(' Norm(B)                : %0.6g\n', norm_b);
-    fprintf(' Norm(A-B)              : %0.6g\n', euclidean_distance);
-    fprintf(' Norm ratio A/B         : %0.6f\n', norm_ratio);
-    fprintf(' Normalised distance    : %0.6f\n', euclidean_distance_norm);
-    fprintf('=========================================\n\n');
+    %% Optional printed summary
+    if parser.Results.Verbose
+        fprintf('=========================================\n');
+        fprintf(' Similarity Metrics     : %d elements\n', numel(a));
+        fprintf('=========================================\n');
+        fprintf(' Mean(A)                : %0.6g\n', mean_a);
+        fprintf(' Mean(B)                : %0.6g\n', mean_b);
+        fprintf(' Mean ratio A/B         : %0.6f\n', mean_ratio);
+        fprintf('\n');
+        fprintf(' Cosine similarity      : %+0.6f\n', cosine_similarity);
+        fprintf(' Pearson correlation    : %+0.6f\n', pearson_correlation);
+        fprintf(' Spearman correlation   : %+0.6f\n', spearman_correlation);
+        fprintf('\n');
+        fprintf(' Norm(A)                : %0.6g\n', norm_a);
+        fprintf(' Norm(B)                : %0.6g\n', norm_b);
+        fprintf(' Norm(A-B)              : %0.6g\n', euclidean_distance);
+        fprintf(' Norm ratio A/B         : %0.6f\n', norm_ratio);
+        fprintf(' Normalised distance    : %0.6f\n', euclidean_distance_norm);
+        fprintf('=========================================\n\n');
+    end
 
 end

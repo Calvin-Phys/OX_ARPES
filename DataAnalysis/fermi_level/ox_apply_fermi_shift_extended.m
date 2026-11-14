@@ -2,7 +2,21 @@ function data_out = ox_apply_fermi_shift_extended(KZ_DATA, EF_curve)
 
 data_out = KZ_DATA;
 
+if ~isa(KZ_DATA, 'OxA_KZ')
+    error('OxArpes:InvalidDataType', 'KZ_DATA must be an OxA_KZ object.');
+end
+KZ_DATA.validate();
+validateattributes(EF_curve, {'numeric'}, {'vector','real','finite','numel',numel(KZ_DATA.x)});
+
 E = KZ_DATA.z(:)';
+if all(diff(E) < 0)
+    E = fliplr(E);
+    sourceValue = flip(KZ_DATA.value, 3);
+elseif all(diff(E) > 0)
+    sourceValue = KZ_DATA.value;
+else
+    error('OxArpes:InvalidAxis', 'The energy axis must be strictly monotonic.');
+end
 dE = mean(diff(E));
 
 max_shift = max(abs(EF_curve));
@@ -18,7 +32,7 @@ value_new = zeros(Nhv, Nky, length(E_ext));
 for ihv = 1:Nhv
 
     EF_i = EF_curve(ihv);
-    slice = squeeze(KZ_DATA.value(ihv,:,:));  % (ky, E)
+    slice = squeeze(sourceValue(ihv,:,:));  % (ky, E)
 
     slice_ext = zeros(Nky, length(E_ext));
 

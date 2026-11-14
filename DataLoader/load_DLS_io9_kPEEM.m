@@ -1,6 +1,8 @@
 function DATA = load_DLS_io9_kPEEM(file_path)
-%LOAD_DLS_IO9 Summary of this function goes here
-%   Detailed explanation goes here
+%LOAD_DLS_IO9_KPEEM Read supported DLS i09 kPEEM HDF5 scans.
+%   Builds a spectrum or calibrated angular map from the scan command and
+%   associated DLD files. Unsupported commands warn and return [] before
+%   metadata is attached.
     
     %   -------------------------
     scan_command = h5read(file_path,'/entry1/scan_command');
@@ -65,6 +67,11 @@ function DATA = load_DLS_io9_kPEEM(file_path)
             DATA.y_name = 'Angle Y';
             DATA.y_unit = 'deg';
 
+        else
+            warning('OxArpes:UnsupportedKPEEMScan', ...
+                'The Benergy scan does not contain a supported DLD detector mode.');
+            DATA = [];
+            return
         end
 
         DATA.info.scan_command = scan_command;
@@ -76,7 +83,10 @@ function DATA = load_DLS_io9_kPEEM(file_path)
         DATA.info.workfunction = workfunction;
 
     else
+        warning('OxArpes:UnsupportedKPEEMScan', ...
+            'Unsupported DLS i09 kPEEM scan command: %s', char(string(scan_command)));
         DATA = [];
+        return
     end
 
     
@@ -84,4 +94,3 @@ function DATA = load_DLS_io9_kPEEM(file_path)
 
     
 end
-

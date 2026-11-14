@@ -1,14 +1,15 @@
  classdef OxA_MAP_ToF < OxArpes_3D_Data
-    %OXA_MAP Summary of this class goes here
-    %   Detailed explanation goes here
+    %OXA_MAP_TOF Data object for time-of-flight angular maps.
+    %   The axes are two emission angles and kinetic energy; kconvert applies
+    %   the configured angular offsets and azimuthal rotation before mapping
+    %   the intensity onto an in-plane momentum grid.
     
     properties
     end
     
     methods
         function obj = OxA_MAP_ToF(varargin)
-            %OXA_MAP Construct an instance of this class
-            %   Detailed explanation goes here
+            %OXA_MAP_TOF Construct a time-of-flight map and initialize axes.
             obj@OxArpes_3D_Data(varargin{:});
 
             obj.name = 'MAP';
@@ -25,11 +26,48 @@
         end
         
         function KMAP = kconvert(obj)
+            %KCONVERT Convert angular coordinates to an in-plane momentum map.
+
+            obj.validate();
+            requiredInfo = {'thetax_offset','thetay_offset','azimuth_offset', ...
+                'photon_energy','workfunction'};
+            for iField = 1:numel(requiredInfo)
+                if ~isfield(obj.info, requiredInfo{iField}) || ...
+                        isempty(obj.info.(requiredInfo{iField}))
+                    error('OxArpes:MissingMetadata', ...
+                        'ToF MAP k conversion requires info.%s.', requiredInfo{iField});
+                end
+            end
+            for iField = 1:numel(requiredInfo)
+                validateattributes(obj.info.(requiredInfo{iField}), {'numeric'}, ...
+                    {'scalar','real','finite'}, mfilename, ['info.' requiredInfo{iField}]);
+            end
+            if any(obj.z <= 0)
+                error('OxArpes:InvalidKineticEnergy', ...
+                    'ToF MAP k conversion requires strictly positive kinetic energies.');
+            end
+            if ~(all(diff(obj.x) > 0) || all(diff(obj.x) < 0)) || ...
+                    ~(all(diff(obj.y) > 0) || all(diff(obj.y) < 0))
+                error('OxArpes:InvalidAxis', ...
+                    'ToF MAP angular axes must be strictly monotonic.');
+            end
 
             % Precompute azimuth offset sines and cosines
             % keep -45<azimuth_offset<45
             azimuth_cos = cosd(obj.info.azimuth_offset);
             azimuth_sin = sind(obj.info.azimuth_offset);
+
+            sampleX = obj.x;
+            sampleY = obj.y;
+            sampleValue = obj.value;
+            if sampleX(1) > sampleX(end)
+                sampleX = fliplr(sampleX);
+                sampleValue = flip(sampleValue,1);
+            end
+            if sampleY(1) > sampleY(end)
+                sampleY = fliplr(sampleY);
+                sampleValue = flip(sampleValue,2);
+            end
             
             [DY, DX] = meshgrid(obj.y,obj.x);
 
@@ -41,7 +79,7 @@
             data_new = zeros(size(obj.value));
             for i = 1:length(obj.z)
                 % Interpolate data
-                data_new(:,:,i) = interp2(obj.y, obj.x, obj.value(:,:,i), DY_r, DX_r, 'spline', 0);
+                data_new(:,:,i) = interp2(sampleY, sampleX, sampleValue(:,:,i), DY_r, DX_r, 'spline', 0);
             end
 
             % Theta offset
@@ -57,6 +95,20 @@
             % Theta offset
             y_offset = obj.y - DY_new;
             x_offset = obj.x - DX_new;
+            if any(abs(x_offset) >= 90) || any(abs(y_offset) >= 90)
+                error('OxArpes:InvalidAngle', ...
+                    'Offset-corrected emission angles must lie strictly between -90 and 90 degrees.');
+            end
+
+            rotatedValue = data_new;
+            if x_offset(1) > x_offset(end)
+                x_offset = fliplr(x_offset);
+                rotatedValue = flip(rotatedValue,1);
+            end
+            if y_offset(1) > y_offset(end)
+                y_offset = fliplr(y_offset);
+                rotatedValue = flip(rotatedValue,2);
+            end
         
             % Find K's boundary
             thetax_max = max(x_offset);
@@ -64,7 +116,6 @@
             thetay_max = max(y_offset);
             thetay_min = min(y_offset);
             energy_min = min(obj.z);
-            energy_max = max(obj.z);
         
         
             % Calculate Kx, Ky boundaries
@@ -89,11 +140,20 @@
                 Eki = obj.z(i);
         
                 % Calculate new thetay (Y0) and thetax (X0)
-                Y0 = asind(KY / CONST ./ sqrt(Eki));
-                X0 = asind(KX / CONST / sqrt(Eki) ./ cosd(Y0));
-        
+                yArgument = KY / CONST ./ sqrt(Eki);
+                validQuery = abs(yArgument) <= 1;
+                Y0 = nan(size(yArgument));
+                Y0(validQuery) = asind(yArgument(validQuery));
+
+                xArgument = KX / CONST / sqrt(Eki) ./ cosd(Y0);
+                validQuery = validQuery & isfinite(xArgument) & abs(xArgument) <= 1;
+                X0 = nan(size(xArgument));
+                X0(validQuery) = asind(xArgument(validQuery));
+
                 % Interpolate data
-                data_new_k(:,:,i) = interp2(y_offset, x_offset, data_new(:,:,i), Y0, X0, 'spline', 0);
+                plane = interp2(y_offset, x_offset, rotatedValue(:,:,i), Y0, X0, 'spline', 0);
+                plane(~isfinite(plane)) = 0;
+                data_new_k(:,:,i) = plane;
             end
             data_new_k(data_new_k < 0) = 0;
         

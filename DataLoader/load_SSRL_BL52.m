@@ -1,6 +1,8 @@
 function DATA = load_SSRL_BL52(file_path)
-%LOAD_SSRL_BL52 Summary of this function goes here
-%   Detailed explanation goes here
+%LOAD_SSRL_BL52 Read supported SSRL BL5-2 HDF5 spectra and maps.
+%   The command type selects a CUT, MAP, or KZ object; axis values are
+%   reconstructed from counts, offsets, and steps stored in HDF5 attributes.
+%   Unsupported command types warn and return [] before metadata assignment.
     data_info = h5info(file_path);
     
     data_type = h5readatt(file_path,'/Details/CommandSettings','Type');
@@ -108,7 +110,10 @@ function DATA = load_SSRL_BL52(file_path)
         DATA.z_unit = z_unit;
         DATA.z_name = '{\itE} - {\itE}_F';
     else
+        warning('OxArpes:UnsupportedSSRLDataType', ...
+            'Unsupported SSRL BL5-2 data type "%s".', char(string(data_type)));
         DATA = [];
+        return
     end
 
     DATA.value(isnan(DATA.value)) = 0;
@@ -139,9 +144,8 @@ function DATA = load_SSRL_BL52(file_path)
     DATA.info.resolution_beamline = h5readatt(file_path,'/Resolution','BeamlineResolution');
     DATA.info.resolution_analyser = h5readatt(file_path,'/Resolution','AnalyserResolution');
     DATA.info.beamline = h5readatt(file_path,'/UserSettings','Location');
-    DATA.info.beamline = h5readatt(file_path,'/Details','CreationTime');
+    DATA.info.creation_time = h5readatt(file_path,'/Details','CreationTime');
     DATA.info.raw = data_info;
 
     
 end
-

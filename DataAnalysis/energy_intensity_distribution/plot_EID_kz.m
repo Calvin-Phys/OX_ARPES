@@ -1,17 +1,13 @@
-KZ_DATA = XXX;
+function [result, correctedData] = plot_EID_kz(KZ_DATA, varargin)
+%PLOT_EID_KZ Calibrate and optionally plot Fermi drift in a KZ scan.
+%   This compatibility entry point replaces the former workspace-specific
+%   script.  Options are forwarded to ox_calibrate_fermi_kz_scan; use
+%   'Debug',true to request its diagnostic plot.
 
-Texp = 26.5;          % Kelvin
-res_guess = 0.03;   % eV initial guess
-
-result = ox_calibrate_fermi_kz_scan(KZ_DATA, ...
-    'Temperature', Texp, ...
-    'Resolution', res_guess, ...
-    'QuantileIndex', [1 2 3], ...
-    'SmoothSpan', 1, ...
-    'Debug', true);
-
-EF_curve = result.EF_smooth;
-
-%%
-
-XXX_fixFL = ox_apply_fermi_shift_extended(KZ_DATA,EF_curve);
+    result = ox_calibrate_fermi_kz_scan(KZ_DATA,varargin{:});
+    if result.isValid
+        correctedData = result.data_corrected;
+    else
+        correctedData = [];
+    end
+end

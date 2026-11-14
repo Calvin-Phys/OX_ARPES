@@ -29,12 +29,36 @@ classdef OxA_CUT < OxArpes_2D_Data
             % Uses a simple formula to convert the theta values to k-space.
             % Returns a new OxA_CUT object with k-space data.
 
+            obj.validate();
+            requiredInfo = {'thetay_offset','photon_energy','workfunction'};
+            for iField = 1:numel(requiredInfo)
+                if ~isfield(obj.info, requiredInfo{iField}) || ...
+                        isempty(obj.info.(requiredInfo{iField}))
+                    error('OxArpes:MissingMetadata', ...
+                        'CUT k conversion requires info.%s.', requiredInfo{iField});
+                end
+            end
+            validateattributes(obj.info.photon_energy, {'numeric'}, {'scalar','real','finite'});
+            validateattributes(obj.info.workfunction, {'numeric'}, {'scalar','real','finite'});
+            validateattributes(obj.info.thetay_offset, {'numeric'}, {'scalar','real','finite'});
+            if any(obj.y <= 0)
+                error('OxArpes:InvalidKineticEnergy', ...
+                    'CUT k conversion requires strictly positive kinetic energies.');
+            end
+            if ~(all(diff(obj.x) > 0) || all(diff(obj.x) < 0))
+                error('OxArpes:InvalidAxis', 'The CUT angle axis must be strictly monotonic.');
+            end
+
             % electron mass = 9.1093837 × 10-31 kilograms
             % hbar = 6.582119569...×10-16 eV⋅s
             % k (A-1) = CONST * sqrt(Ek (eV)) * sin(theta)
             CONST = 0.512316722;
 
             theta_offset = obj.x - obj.info.thetay_offset;
+            if any(abs(theta_offset) >= 90)
+                error('OxArpes:InvalidAngle', ...
+                    'Offset-corrected emission angles must lie strictly between -90 and 90 degrees.');
+            end
 
             theta_max = max(theta_offset);
             theta_min = min(theta_offset);
@@ -64,8 +88,12 @@ classdef OxA_CUT < OxArpes_2D_Data
         end
 
         function EDC = getEDC(obj,x0,x1)
+            %GETEDC Average intensity over the selected angular interval.
             [~,nx0] = min(abs(obj.x-x0));
             [~,nx1] = min(abs(obj.x-x1));
+            nx = sort([nx0 nx1]);
+            nx0 = nx(1);
+            nx1 = nx(2);
             EDC = mean(obj.value(nx0:nx1,:),1);
 %             figure
 %             plot(obj.y,EDC);

@@ -1,6 +1,7 @@
 function DATA = load_DLS_io5_HR(file_path)
-%LOAD_DLS_IO5 Summary of this function goes here
-%   Detailed explanation goes here
+%LOAD_DLS_IO5_HR Read DLS i05 high-resolution NeXus ARPES scans.
+%   Interprets scan metadata and analyser data as CUT, MAP, or 4-D data,
+%   then adds beamline metadata. The 4-D VALUE array uses (x,y,k,z) order.
     
     %   -------------------------
     try
@@ -9,10 +10,7 @@ function DATA = load_DLS_io5_HR(file_path)
         title = h5read(file_path,'/entry1/scan_command');
     end
 
-    try
-        value = double(h5read(file_path,'/entry1/analyser/data'));
-    catch
-    end
+    value = double(h5read(file_path,'/entry1/analyser/data'));
 
     photon_energy = h5read(file_path,'/entry1/instrument/monochromator/energy');
     pass_energy = h5read(file_path,'/entry1/instrument/analyser/pass_energy');
@@ -144,7 +142,11 @@ function DATA = load_DLS_io5_HR(file_path)
         ZZ_mean_dz = mean(ZZ,2);
         nz = length(ZZ_mean_dz);
         P = polyfit(1:nz,ZZ_mean_dz,1);
-        dz = P(1);
+        dz = abs(P(1));
+        if ~isfinite(dz) || dz <= 0
+            error('OxArpes:InvalidI05EnergyAxis', ...
+                'The i05 energy axis does not define a positive sampling interval.');
+        end
 
         % photon_energy
         % workfunction
@@ -157,7 +159,19 @@ function DATA = load_DLS_io5_HR(file_path)
 
         VALUE_NEW = zeros(length(x),length(y),length(EEF_new));
         for i = 1:length(x)
-            VALUE_NEW(i,:,:) = interp2(EEF(:,i),y,squeeze(value(i,:,:)),EEFF,YY,'spline',0);
+            energyAxis = EEF(:,i).';
+            angleAxis = y(:).';
+            sourcePlane = reshape(value(i,:,:),numel(angleAxis),numel(energyAxis));
+            if energyAxis(1) > energyAxis(end)
+                energyAxis = fliplr(energyAxis);
+                sourcePlane = flip(sourcePlane,2);
+            end
+            if angleAxis(1) > angleAxis(end)
+                angleAxis = fliplr(angleAxis);
+                sourcePlane = flip(sourcePlane,1);
+            end
+            VALUE_NEW(i,:,:) = interp2(energyAxis,angleAxis,sourcePlane, ...
+                EEFF,YY,'spline',0);
         end
         DATA = OxA_KZ(x,y,EEF_new,VALUE_NEW);
         %         DATA = DATA.set_contrast();
@@ -199,6 +213,7 @@ function DATA = load_DLS_io5_HR(file_path)
         y = mean(h5read(file_path,'/entry1/analyser/saz'),2);
         z = mean(h5read(file_path,'/entry1/analyser/energies'),[2 3]);
         k = h5read(file_path,'/entry1/analyser/angles');
+        % Normalize the source HDF5 axes to the package order (x,y,k,z).
         value = permute(h5read(file_path,'/entry1/analyser/data'),[4 3 2 1]);
         DATA = OxArpes_4D_Data(x,y,z,k,value);
         DATA.x_name = 'sax';
@@ -215,6 +230,7 @@ function DATA = load_DLS_io5_HR(file_path)
         y = mean(h5read(file_path,'/entry1/analyser/saz'),1);
         z = mean(h5read(file_path,'/entry1/analyser/energies'),[2 3]);
         k = h5read(file_path,'/entry1/analyser/angles');
+        % Normalize the source HDF5 axes to the package order (x,y,k,z).
         value = permute(h5read(file_path,'/entry1/analyser/data'),[3 4 2 1]);
         DATA = OxArpes_4D_Data(x,y,z,k,value);
         DATA.x_name = 'sax';
@@ -227,7 +243,10 @@ function DATA = load_DLS_io5_HR(file_path)
         DATA.z_unit = 'eV';
 
     else
+        warning('OxArpes:UnsupportedI05Scan', ...
+            'Unsupported DLS i05 HR scan command: %s', char(string(title)));
         DATA = [];
+        return
     end
 
     % ------- add Info
@@ -275,4 +294,3 @@ function DATA = load_DLS_io5_HR(file_path)
         end
     end
 end
-

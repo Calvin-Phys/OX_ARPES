@@ -1,8 +1,7 @@
 function DATA = load_ALS_Maestro_fits(file_path)
-%LOAD_ALS_MAESTRO_FITS load .fits data from ALS Maestro beamline BL 10 & 7
-% into pre-defined objects
-%   Detailed explanation goes here
-% added support for nanoARPES
+%LOAD_ALS_MAESTRO_FITS Read ALS MAESTRO FITS scans as OX data objects.
+%   Interprets FITS keywords, dimensions, and axis calibration to construct
+%   the corresponding spectrum, map, or nanoARPES object and its metadata.
 
     % -------------------------------------------------------------------
     % get raw data
@@ -35,7 +34,7 @@ function DATA = load_ALS_Maestro_fits(file_path)
             dx = tmp(1);
             dy = tmp(2);
 
-            num_col = str2num(keyword(5:end));
+            num_col = str2double(keyword(5:end));
 
             break
         end
@@ -63,7 +62,7 @@ function DATA = load_ALS_Maestro_fits(file_path)
                 y0 = keywords_binarytable{ii,2};
                 dy = keywords_binarytable{ii+1,2};
     
-                num_col = str2num(keyword(6:end));
+                num_col = str2double(keyword(6:end));
 
                 cYY = y0 + dy*(0:(ny-1));
                 cXX = [-1, 0, 1];
@@ -89,7 +88,7 @@ function DATA = load_ALS_Maestro_fits(file_path)
     switch data_type
         case 'null' % cut
             DATA = OxA_CUT(cXX,cYY,VALUE);
-        case {'Slit Defl','Slit Defl.','Alpha'} %  map
+        case {'Slit Defl','Slit Defl.','Alpha','X'} %  map
             DATA = OxA_MAP(LL,cXX,cYY,VALUE);
         case 'mono_eV' % photon energy scan
             DATA = OxA_KZ(LL,cXX,cYY,VALUE);
@@ -137,14 +136,14 @@ function DATA = load_ALS_Maestro_fits(file_path)
             switch data_type
                 case 'null' % cut
                     DATA.y = DATA.y + DATA.info.photon_energy;
-                case {'Slit Defl','Slit Defl.','Alpha'} % deflector map
+                case {'Slit Defl','Slit Defl.','Alpha','X'} % deflector map
                     DATA.z = DATA.z + DATA.info.photon_energy;
             end
         case {'ALS_BL07_uARPES','ALS_BL07_nARPES'}
             switch data_type
                 case 'null' % cut
                     DATA.y = DATA.y + DATA.info.photon_energy - DATA.info.workfunction;
-                case {'Slit Defl','Slit Defl.','Alpha'} % deflector map
+                case {'Slit Defl','Slit Defl.','Alpha','X'} % deflector map
                     DATA.z = DATA.z + DATA.info.photon_energy - DATA.info.workfunction;
             end
     end

@@ -1,6 +1,9 @@
 function DATA = load_ALBA_LOREA(file_path)
-%LOAD_ALBA_LOREA Summary of this function goes here
-%   Detailed explanation goes here
+%LOAD_ALBA_LOREA Read an ALBA LOREA NeXus/HDF5 scan.
+%   Returns a CUT for 2-D spectra, a MAP for deflector maps, or a KZ object
+%   for photon-energy scans. The 3-D schema is selected from dataset names;
+%   unsupported dimensions or schemas warn and return empty before metadata
+%   assignment. Axis permutations follow each file schema's stored order.
     title = h5read(file_path,'/entry1/title');
     
     data = h5read(file_path,'/entry1/data/data');
@@ -20,7 +23,9 @@ function DATA = load_ALBA_LOREA(file_path)
             DATA.y_unit = 'eV';
 
         case 3
-            try
+            dataGroup = h5info(file_path,'/entry1/data');
+            datasetNames = {dataGroup.Datasets.Name};
+            if any(strcmp(datasetNames,'defl_angles'))
                 x = h5read(file_path,'/entry1/data/defl_angles');
                 y = h5read(file_path,'/entry1/data/angles');
                 z = h5read(file_path,'/entry1/data/energies');
@@ -39,7 +44,8 @@ function DATA = load_ALBA_LOREA(file_path)
                 DATA.y_unit = 'Deg';
                 DATA.z_name = 'Kinetic Energy';
                 DATA.z_unit = 'eV';
-            catch
+            elseif all(ismember({'photon_energies','angles','binding_energies'}, ...
+                    datasetNames))
                 x = h5read(file_path,'/entry1/data/photon_energies');
                 y = h5read(file_path,'/entry1/data/angles');
                 z = h5read(file_path,'/entry1/data/binding_energies');
@@ -58,8 +64,19 @@ function DATA = load_ALBA_LOREA(file_path)
                 DATA.y_unit = 'Deg';
                 DATA.z_name = 'Binding Energy';
                 DATA.z_unit = 'eV';
-
+            else
+                warning('OxArpes:UnknownLOREA3DSchema', ...
+                    'The 3-D LOREA file has neither map nor photon-energy-scan axes.');
+                DATA = [];
+                return
             end
+
+        otherwise
+            warning('OxArpes:UnsupportedLOREADimension', ...
+                'ALBA LOREA loader supports only 2-D and 3-D data; received %d-D.', ...
+                ndims(data));
+            DATA = [];
+            return
 
     end
 

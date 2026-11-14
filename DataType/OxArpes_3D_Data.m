@@ -1,6 +1,8 @@
 classdef OxArpes_3D_Data
-    %OXARPES_3D_DATA Summary of this class goes here
-    %   Detailed explanation goes here
+    %OXARPES_3D_DATA Base class for data sampled on three ARPES axes.
+    %   X, Y, and Z are coordinate vectors and VALUE is indexed as
+    %   VALUE(x,y,z). INFO stores acquisition metadata; methods provide
+    %   common plotting, smoothing, slicing, cropping, and validation.
     
     properties
         name;
@@ -23,15 +25,20 @@ classdef OxArpes_3D_Data
         % constructor
         function obj = OxArpes_3D_Data(varargin)
             if nargin == 4
-                obj.x = varargin{1};
-                obj.y = varargin{2};
-                obj.z = varargin{3};
+                obj.x = varargin{1}(:).';
+                obj.y = varargin{2}(:).';
+                obj.z = varargin{3}(:).';
                 obj.value = varargin{4};
+                obj.validate();
             elseif nargin == 1
-                obj.x = varargin{1}.x;
-                obj.y = varargin{1}.y;
-                obj.z = varargin{1}.z;
+                obj.x = varargin{1}.x(:).';
+                obj.y = varargin{1}.y(:).';
+                obj.z = varargin{1}.z(:).';
                 obj.value = varargin{1}.value;
+                obj.validate();
+            elseif nargin ~= 0
+                error('OxArpes:InvalidConstructor', ...
+                    'Expected zero arguments, a data structure, or x, y, z, value.');
             end
         end
 
@@ -43,26 +50,32 @@ classdef OxArpes_3D_Data
         end
 
         function VolumeViewer(obj)
+            %VOLUMEVIEWER Open the volume viewer with physical axis scaling.
+            %   The array is permuted for the viewer's row/column convention.
+            %   Comma-separated name-value syntax also works before R2021a.
             xx = (max(obj.x)-min(obj.x))/length(obj.x);
             yy = (max(obj.y)-min(obj.y))/length(obj.y);
             zz = (max(obj.z)-min(obj.z))/length(obj.z);
 
             rr = (max(obj.z)-min(obj.z)) / ((max(obj.x)-min(obj.x)+max(obj.y)-min(obj.y))/2);
             
-            try
-                volumeViewer(permute(obj.value, [2 1 3]), ScaleFactors=[xx yy zz/rr]);
-            catch
-            end
+            volumeViewer(permute(obj.value, [2 1 3]), 'ScaleFactors', [xx yy zz/rr]);
         end
 
         % basic operations
         function obj = set_contrast(obj)
-            n_data = sort(obj.value(:));
-            upbound = n_data(round(0.995*length(n_data)));
+            n_data = sort(obj.value(isfinite(obj.value)));
+            if isempty(n_data)
+                return
+            end
+            upbound = n_data(max(1, round(0.995*length(n_data))));
             obj.value(obj.value>upbound) = upbound;
         end
         
         function SDATA = Gaussian_smoothen_YZ(obj,sig_x,sig_y)
+
+            validateattributes(sig_x, {'numeric'}, {'scalar','real','finite','positive'});
+            validateattributes(sig_y, {'numeric'}, {'scalar','real','finite','positive'});
 
             % sigma - standard deviation
             rad_x = ceil(3.5*sig_x);
@@ -104,6 +117,9 @@ classdef OxArpes_3D_Data
 
         function SDATA = Gaussian_smoothen_XY(obj,sig_x,sig_y)
 
+            validateattributes(sig_x, {'numeric'}, {'scalar','real','finite','positive'});
+            validateattributes(sig_y, {'numeric'}, {'scalar','real','finite','positive'});
+
             % sigma - standard deviation
             rad_x = ceil(3.5*sig_x);
             rad_y = ceil(3.5*sig_y);
@@ -143,44 +159,26 @@ classdef OxArpes_3D_Data
         end
 
         function SDATA = Z_Gaussian_smoothen(obj,sig_z)
+            %Z_GAUSSIAN_SMOOTHEN Smooth each x-y location along the z axis.
+            %   SIG_Z is the Gaussian standard deviation in samples. The
+            %   normalized one-dimensional kernel acts only on dimension 3;
+            %   the denominator corrects edge attenuation. Algorithm kept.
+            % Smooth only along the third (z) dimension.  Edge weights are
+            % renormalised so a constant volume remains constant.
+            validateattributes(sig_z, {'numeric'}, {'scalar','real','finite','positive'});
 
-            % sigma - standard deviation
-            rad_x = ceil(3.5*sig_z);
-            rad_y = ceil(3.5*sig_z);
-            x = -rad_x : rad_x;
-            y = -rad_y : rad_y;
-            [Y,X] = meshgrid(y,x);
-            R = (X/sig_z).^2 + (Y/sig_z).^2;
-            
-            G = exp(-R/2);
-            % normalize gaussian filter
-            S = sum(G,'all');
-            G = G./S;
+            radius = ceil(3.5*sig_z);
+            kernelAxis = -radius:radius;
+            G = exp(-0.5*(kernelAxis/sig_z).^2);
+            G = reshape(G/sum(G), 1, 1, []);
+
+            inputValue = double(obj.value);
+            numerator = convn(inputValue, G, 'same');
+            denominator = convn(ones(size(inputValue)), G, 'same');
 
             SDATA = obj;
-            SDATA.name = [obj.name ' smooth'];
-            
-            for i = 1:size(obj.value,3)
-                ma = squeeze(obj.value(:,:,i));
-                w1 = rad_x;
-                w2 = rad_y;
-                L = size(ma,1); % y
-                J = size(ma,2); % z
-                
-                map = zeros(L+2*w1, J+2*w2);
-                map(1+w1:L+w1, 1+w2:J+w2) = ma;
-    
-                map(1:w1,:) = flip(map(1+w1:2*w1,:),1);
-                map(w1+L+1:L+2*w1,:) = flip(map(L+1:L+w1,:),1);
-                map(:,1:w2) = flip(map(:,1+w2:2*w2),2);
-                map(:,w2+J+1:J+2*w2) = flip(map(:,J+1:J+w2),2);
-    
-                map = conv2(map,G,'same');
-
-                SDATA.value(:,:,i) = map(1+w1:L+w1,1+w2:J+w2);
-            end
-
-            
+            SDATA.value = numerator ./ denominator;
+            SDATA.name = [obj.name ' z-smooth'];
 
         end
 
@@ -188,6 +186,9 @@ classdef OxArpes_3D_Data
             % >>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             % Gaussian Smooth 
             
+            validateattributes(sig_x, {'numeric'}, {'scalar','real','finite','positive'});
+            validateattributes(sig_y, {'numeric'}, {'scalar','real','finite','positive'});
+
             % sigma - standard deviation
             rad_x = ceil(3.5*sig_x);
             rad_y = ceil(3.5*sig_y);
@@ -267,6 +268,13 @@ classdef OxArpes_3D_Data
             [~,nzmin] = min(abs(obj.z-zmin));
             [~,nzmax] = min(abs(obj.z-zmax));
 
+            nx = sort([nxmin nxmax]);
+            ny = sort([nymin nymax]);
+            nz = sort([nzmin nzmax]);
+            nxmin = nx(1); nxmax = nx(2);
+            nymin = ny(1); nymax = ny(2);
+            nzmin = nz(1); nzmax = nz(2);
+
             NEW_DATA.x = NEW_DATA.x(nxmin:nxmax);
             NEW_DATA.y = NEW_DATA.y(nymin:nymax);
             NEW_DATA.z = NEW_DATA.z(nzmin:nzmax);
@@ -276,6 +284,20 @@ classdef OxArpes_3D_Data
 
         function NEW_DATA = truncate_idx(obj,nxmin,nxmax,nymin,nymax,nzmin,nzmax)
             NEW_DATA = obj;
+
+            nx = sort([nxmin nxmax]);
+            ny = sort([nymin nymax]);
+            nz = sort([nzmin nzmax]);
+            nxmin = nx(1); nxmax = nx(2);
+            nymin = ny(1); nymax = ny(2);
+            nzmin = nz(1); nzmax = nz(2);
+
+            validateattributes([nxmin nxmax], {'numeric'}, ...
+                {'integer','positive','<=',numel(obj.x)});
+            validateattributes([nymin nymax], {'numeric'}, ...
+                {'integer','positive','<=',numel(obj.y)});
+            validateattributes([nzmin nzmax], {'numeric'}, ...
+                {'integer','positive','<=',numel(obj.z)});
 
             NEW_DATA.x = NEW_DATA.x(nxmin:nxmax);
             NEW_DATA.y = NEW_DATA.y(nymin:nymax);
@@ -294,6 +316,10 @@ classdef OxArpes_3D_Data
             if nargin < 4
                 error('block_reduce requires nx, ny, nz.')
             end
+
+            validateattributes(nx, {'numeric'}, {'scalar','integer','positive','<=',numel(obj.x)});
+            validateattributes(ny, {'numeric'}, {'scalar','integer','positive','<=',numel(obj.y)});
+            validateattributes(nz, {'numeric'}, {'scalar','integer','positive','<=',numel(obj.z)});
         
             if nx <= 1 && ny <= 1 && nz <= 1
                 NEW_DATA = obj;
@@ -328,7 +354,8 @@ classdef OxArpes_3D_Data
                               nz, Nz_new/nz);
         
             % Average over block dimensions (1,3,5)
-            V_block = squeeze( mean( mean( mean(V_block,1), 3), 5 ) );
+            V_block = mean(mean(mean(V_block,1), 3), 5);
+            V_block = reshape(V_block, Nx_new/nx, Ny_new/ny, Nz_new/nz);
         
             % New axes: block-averaged coordinates
             x_block = reshape(x_trunc, nx, Nx_new/nx);
@@ -400,9 +427,16 @@ classdef OxArpes_3D_Data
 
         function CUT = get_slice(obj,direction,pos,width)
 
+            validateattributes(pos, {'numeric'}, {'scalar','real','finite'});
+            validateattributes(width, {'numeric'}, {'scalar','real','finite','nonnegative'});
+            if ~(ischar(direction) || (isstring(direction) && isscalar(direction)))
+                error('OxArpes:InvalidDirection', ...
+                    'Slice direction must be ''x'', ''y'', or ''z''.');
+            end
+
             CUT = [];
 
-            switch direction
+            switch lower(char(direction))
                 case 'x'
                     xData = obj.y;
                     yData = obj.z;
@@ -414,7 +448,8 @@ classdef OxArpes_3D_Data
                     if ~any(cond)
                         [~,cond] = min(abs(obj.x - pos));
                     end
-                    sliceData = squeeze(mean(obj.value(cond,:,:),1));
+                    sliceData = reshape(mean(obj.value(cond,:,:),1), ...
+                        numel(obj.y),numel(obj.z));
                 case 'y'
                     xData = obj.x;
                     yData = obj.z;
@@ -426,8 +461,9 @@ classdef OxArpes_3D_Data
                     if ~any(cond)
                         [~,cond] = min(abs(obj.y - pos));
                     end
-                    sliceData = squeeze(mean(obj.value(:,cond,:),2));
-                otherwise
+                    sliceData = reshape(mean(obj.value(:,cond,:),2), ...
+                        numel(obj.x),numel(obj.z));
+                case 'z'
                     xData = obj.x;
                     yData = obj.y;
                     xData_name = obj.x_name;
@@ -438,7 +474,11 @@ classdef OxArpes_3D_Data
                     if ~any(cond)
                         [~,cond] = min(abs(obj.z - pos));
                     end
-                    sliceData = squeeze(mean(obj.value(:,:,cond),3));
+                    sliceData = reshape(mean(obj.value(:,:,cond),3), ...
+                        numel(obj.x),numel(obj.y));
+                otherwise
+                    error('OxArpes:InvalidDirection', ...
+                        'Slice direction must be ''x'', ''y'', or ''z''.');
             end
 
             CUT = OxA_CUT(xData,yData,sliceData);
@@ -448,6 +488,37 @@ classdef OxArpes_3D_Data
             CUT.y_unit = yData_unit;
             CUT.info = obj.info;
 
+        end
+
+        function validate(obj)
+            %VALIDATE Check the public 3-D axis/value contract.
+            validateattributes(obj.x, {'numeric'}, {'vector','real','finite','nonempty'});
+            validateattributes(obj.y, {'numeric'}, {'vector','real','finite','nonempty'});
+            validateattributes(obj.z, {'numeric'}, {'vector','real','finite','nonempty'});
+            validateattributes(obj.value, {'numeric','logical'}, {'nonempty'});
+
+            expected = [numel(obj.x), numel(obj.y), numel(obj.z)];
+            actual = size(obj.value);
+            actual(end+1:3) = 1;
+            if ~isequal(actual(1:3), expected) || numel(actual) > 3
+                error('OxArpes:DimensionMismatch', ...
+                    'value must have size [numel(x), numel(y), numel(z)].');
+            end
+
+            axesToCheck = {obj.x, obj.y, obj.z};
+            axisNames = {'x','y','z'};
+            for iAxis = 1:3
+                if numel(axesToCheck{iAxis}) > 1
+                    delta = diff(axesToCheck{iAxis});
+                    if any(delta == 0)
+                        error('OxArpes:DuplicateAxis', ...
+                            '%s must not contain duplicate adjacent coordinates.', axisNames{iAxis});
+                    elseif ~(all(delta > 0) || all(delta < 0))
+                        error('OxArpes:NonMonotonicAxis', ...
+                            '%s must be strictly increasing or strictly decreasing.', axisNames{iAxis});
+                    end
+                end
+            end
         end
         
     end

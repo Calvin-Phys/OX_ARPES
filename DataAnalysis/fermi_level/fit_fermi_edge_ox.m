@@ -41,11 +41,42 @@ kb = 8.617333262e-5;
 E = E(:);
 I = I(:);
 
+if numel(E) ~= numel(I)
+    error('OxArpes:DimensionMismatch', ...
+        'Energy and intensity vectors must contain the same number of elements.');
+end
+
+validPair = isfinite(E) & isfinite(I);
+E = E(validPair);
+I = I(validPair);
+
+if opt.FixTemperature && isempty(opt.Temperature)
+    error('OxArpes:InvalidFitOptions', ...
+        'FixTemperature=true requires Temperature.');
+end
+if ~opt.FixResolution && ~opt.FixTemperature
+    error('OxArpes:InvalidFitOptions', ...
+        'Resolution fitting requires FixTemperature=true.');
+end
+if ~isempty(opt.Temperature)
+    validateattributes(opt.Temperature, {'numeric'}, {'scalar','real','finite','positive'});
+end
+if ~isempty(opt.Resolution)
+    validateattributes(opt.Resolution, {'numeric'}, {'scalar','real','finite','positive'});
+end
+if ~isempty(opt.Fermi0)
+    validateattributes(opt.Fermi0, {'numeric'}, {'scalar','real','finite'});
+end
+validateattributes(opt.FitWindow, {'numeric'}, {'scalar','real','finite','positive'});
+validateattributes(opt.FixTemperature, {'logical','numeric'}, {'scalar'});
+validateattributes(opt.FixResolution, {'logical','numeric'}, {'scalar'});
+validateattributes(opt.Debug, {'logical','numeric'}, {'scalar'});
+
 % ------------------------------------------------------------
 % Guard: empty / zero / flat EDC
 % ------------------------------------------------------------
 
-if isempty(I) || all(~isfinite(I))
+if isempty(I)
     return
 end
 
@@ -60,6 +91,11 @@ end
 if median(diff(E)) < 0
     E = flipud(E);
     I = flipud(I);
+end
+
+if any(diff(E) <= 0)
+    error('OxArpes:InvalidAxis', ...
+        'Energy coordinates must be strictly monotonic without duplicates.');
 end
 
 
@@ -112,7 +148,11 @@ if isempty(opt.Fermi0)
     contrast = max(contrast, 0);  % only positive drops
     
     % High-energy weight (normalized 0→1)
-    E_norm = (E - min(E)) / (max(E) - min(E));
+    energySpan = max(E) - min(E);
+    if energySpan <= 0
+        return
+    end
+    E_norm = (E - min(E)) / energySpan;
     energy_weight = E_norm.^2;   % bias toward high energy
     
     % Combined score

@@ -1,6 +1,8 @@
 function DATA = load_PSI_ULTRA(file_path)
-%LOAD_PSI_ADRESS Summary of this function goes here
-%   Detailed explanation goes here
+%LOAD_PSI_ULTRA Read supported PSI ULTRA HDF5 swept image data.
+%   Axis scale attributes determine the coordinates and data dimensionality
+%   selects the output object. Unsupported shapes warn and return [] without
+%   attaching partial metadata.
     data_info = h5info(file_path);
     
 
@@ -51,7 +53,11 @@ function DATA = load_PSI_ULTRA(file_path)
         DATA.y = DATA.y + photon_energy - workfunction;
 
     else
+        warning('OxArpes:UnsupportedPSIDimension', ...
+            'PSI ULTRA loader supports only 2-D and 3-D image data; received %d-D.', ...
+            ndims(value));
         DATA = [];
+        return
     end
 
         % ------- add Info
@@ -69,4 +75,3 @@ function DATA = load_PSI_ULTRA(file_path)
 
     
 end
-

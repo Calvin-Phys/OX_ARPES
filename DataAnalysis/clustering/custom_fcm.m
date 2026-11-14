@@ -1,21 +1,4 @@
-k = 4;
-
-[idxMap, U, C, objHist, info] = fcm_cluster_4d(i05_1_63704_RD.value, k, 'correlation', 2.0, 200, 1e-5);
-% or
-% [idxMap, U, C, objHist, info] = fcm_cluster_4d(i05_178697_RD.value, k, 'cosine', 2.0, 200, 1e-5);
-
-figure;
-imagesc(i05_1_63704_RD.x,i05_1_63704_RD.y,idxMap.');
-axis image;
-set(gca, 'YDir', 'normal');
-colorbar;
-xlabel('x index');
-ylabel('y index');
-title('FCM cluster map');
-
-
-
-function [idxMap, U, C, objHist, info] = fcm_cluster_4d(value, k, distMethod, m, maxIter, tol)
+function [idxMap, U, C, objHist, info] = custom_fcm(value, k, distMethod, m, maxIter, tol)
 %FCM_CLUSTER_4D Fuzzy c-means clustering for 4D data.
 %
 % Input:
@@ -46,13 +29,18 @@ function [idxMap, U, C, objHist, info] = fcm_cluster_4d(value, k, distMethod, m,
         tol = 1e-5;
     end
 
-    if ndims(value) ~= 4
-        error('Input value must be a 4D array: [Nx, Ny, Nu, Nv].');
+    if ndims(value) < 3 || ndims(value) > 4
+        error('Input value must represent [Nx, Ny, Nu, Nv] (Nv may be singleton).');
     end
 
-    if ~ismember(lower(distMethod), {'cosine', 'correlation'})
+    distMethod = lower(char(distMethod));
+    if ~ismember(distMethod, {'cosine', 'correlation'})
         error('distMethod must be ''cosine'' or ''correlation''.');
     end
+    validateattributes(k, {'numeric'}, {'scalar','integer','>=',2});
+    validateattributes(m, {'numeric'}, {'scalar','real','finite','>',1});
+    validateattributes(maxIter, {'numeric'}, {'scalar','integer','positive'});
+    validateattributes(tol, {'numeric'}, {'scalar','real','finite','positive'});
 
     [Nx, Ny, Nu, Nv] = size(value);
     nSites  = Nx * Ny;
@@ -63,6 +51,9 @@ function [idxMap, U, C, objHist, info] = fcm_cluster_4d(value, k, distMethod, m,
 
     % Keep only valid sites
     goodSite = all(isfinite(X), 2);
+    if strcmp(distMethod,'correlation')
+        goodSite = goodSite & std(X,0,2) > 0;
+    end
     X = X(goodSite, :);
     n = size(X, 1);
 
@@ -75,12 +66,19 @@ function [idxMap, U, C, objHist, info] = fcm_cluster_4d(value, k, distMethod, m,
     goodFeature = featureStd > 0;
     X = X(:, goodFeature);
 
+    if ~any(goodFeature)
+        error('OxArpes:ConstantData', ...
+            'No nonconstant spectral features remain for clustering.');
+    end
+
     % Recompute feature count after feature filtering
     p = size(X, 2);
 
     % ------------------------------------------------------------
     % Initialise membership matrix U
     % ------------------------------------------------------------
+    rngState = rng;
+    rngCleanup = onCleanup(@() rng(rngState)); %#ok<NASGU>
     rng('default');  % reproducible initialisation
     U = rand(k, n);
     U = U ./ sum(U, 1);

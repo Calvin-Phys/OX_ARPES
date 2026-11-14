@@ -6,11 +6,22 @@ function DP0 = ox_energy_intensity_distribution_per_hv(ARPES_DATA)
     smooth_rangde = 5;
 
     if ~isa(ARPES_DATA,'OxA_KZ')
-        return
+        error('OxArpes:InvalidDataType', 'Input must be an OxA_KZ object.');
     end
+    ARPES_DATA.validate();
 
-    V_max = max(ARPES_DATA.value,[],"all");
-    edges = linspace(0,V_max,Num_bin+1);
+    finiteValues = double(ARPES_DATA.value(isfinite(ARPES_DATA.value)));
+    if isempty(finiteValues)
+        error('OxArpes:NoFiniteIntensity', 'Input data contain no finite intensity values.');
+    end
+    V_min = min(finiteValues);
+    V_max = max(finiteValues);
+    if V_min == V_max
+        delta = max(1,abs(V_min))*eps*16;
+        V_min = V_min-delta;
+        V_max = V_max+delta;
+    end
+    edges = linspace(V_min,V_max,Num_bin+1);
     Eaxis = ARPES_DATA.z;
     NN = zeros(length(ARPES_DATA.x),Num_bin,length(Eaxis));
     lowerbound = zeros(length(ARPES_DATA.x), length(Eaxis), length(q));
@@ -18,11 +29,16 @@ function DP0 = ox_energy_intensity_distribution_per_hv(ARPES_DATA)
     for hv_idx = 1:length(ARPES_DATA.x)
 
         for i=1:length(Eaxis)
-            NN(hv_idx,:,i) = histcounts(ARPES_DATA.value(hv_idx,:,i),edges);
+            slice = double(ARPES_DATA.value(hv_idx,:,i));
+            NN(hv_idx,:,i) = histcounts(slice(isfinite(slice)),edges);
 
-            n_data = sort(reshape(ARPES_DATA.value(hv_idx,:,i),1,[]));
+            n_data = sort(slice(isfinite(slice)));
             for j = 1:length(q)
-                lowerbound(hv_idx,i,j) = n_data(max(1, min(length(n_data), round(q(j) * length(n_data)))));
+                if ~isempty(n_data)
+                    lowerbound(hv_idx,i,j) = n_data(max(1, min(length(n_data), round(q(j) * length(n_data)))));
+                else
+                    lowerbound(hv_idx,i,j) = NaN;
+                end
             end
         end
         
@@ -30,8 +46,10 @@ function DP0 = ox_energy_intensity_distribution_per_hv(ARPES_DATA)
 
     lowerbound_sm = movmean(lowerbound,smooth_rangde,2);
 
-    % clear zeros
-    NN(:,1,:) = 0;
+    zeroBin = find(edges(1:end-1) <= 0 & edges(2:end) > 0,1);
+    if ~isempty(zeroBin)
+        NN(:,zeroBin,:) = 0;
+    end
 
     DP.x = ARPES_DATA.x;
     DP.y = edges(1:end-1);

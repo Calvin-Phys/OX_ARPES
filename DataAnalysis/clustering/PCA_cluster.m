@@ -12,6 +12,7 @@ function result = PCA_cluster(DATA_in, varargin)
 %   'MaxIter'         Maximum k-means iterations. Default: 1000.
 %   'RandomSeed'      Random seed. Default: 0.
 %   'Reconstruct'     Reconstruct the PCA-reduced 4D data. Default: false.
+%   'Verbose'         Print a completion summary. Default: false.
 %
 % Output
 %   result.pca
@@ -39,6 +40,7 @@ function result = PCA_cluster(DATA_in, varargin)
     addParameter(parser, 'MaxIter', 1000);
     addParameter(parser, 'RandomSeed', 0);
     addParameter(parser, 'Reconstruct', false);
+    addParameter(parser, 'Verbose', false);
 
     parse(parser, varargin{:});
     options = parser.Results;
@@ -47,6 +49,21 @@ function result = PCA_cluster(DATA_in, varargin)
 
     if targetVariance <= 1
         targetVariance = 100 * targetVariance;
+    end
+    validateattributes(targetVariance, {'numeric'}, {'scalar','real','finite','>',0,'<=',100});
+    validateattributes(options.KList, {'numeric'}, {'vector','real','finite','integer','positive'});
+    validateattributes(options.Replicates, {'numeric'}, {'scalar','integer','positive'});
+    validateattributes(options.MaxIter, {'numeric'}, {'scalar','integer','positive'});
+    validateattributes(options.RandomSeed, {'numeric'}, {'scalar','integer','nonnegative'});
+    validateattributes(options.Reconstruct, {'logical','numeric'}, {'scalar'});
+    validateattributes(options.Verbose, {'logical','numeric'}, {'scalar'});
+    validateattributes(DATA_in.value, {'numeric','logical'}, {'nonempty'});
+    if ndims(DATA_in.value) < 3 || ndims(DATA_in.value) > 4
+        error('OxArpes:InvalidDimension', ...
+            'PCA clustering expects value(Nx,Ny,Nu,Nv), with Nv optionally singleton.');
+    end
+    if ismethod(DATA_in,'validate')
+        DATA_in.validate();
     end
 
     %% PCA
@@ -145,16 +162,18 @@ function result = PCA_cluster(DATA_in, varargin)
     options.KList = kList;
     result.options = options;
 
-    fprintf( ...
-        'PCA retained %d components and explained %.2f%% of the variance.\n', ...
-        result.pca.nComp, result.pca.cumulativeExplained(end));
+    if logical(options.Verbose)
+        fprintf( ...
+            'PCA retained %d components and explained %.2f%% of the variance.\n', ...
+            result.pca.nComp, result.pca.cumulativeExplained(end));
 
-    fprintf( ...
-        'K-means completed for k = %s.\n', ...
-        mat2str(kList));
+        fprintf( ...
+            'K-means completed for k = %s.\n', ...
+            mat2str(kList));
 
-    if isfinite(suggestedK)
-        fprintf('Estimated elbow: k = %d.\n', suggestedK);
+        if isfinite(suggestedK)
+            fprintf('Estimated elbow: k = %d.\n', suggestedK);
+        end
     end
 end
 
@@ -171,6 +190,19 @@ function out = pca_reduce_4d(value, targetVariance, reconstructData)
 
     validMask = all(isfinite(valueFlat), 2);
     valueValid = valueFlat(validMask, :);
+
+    if isempty(valueValid)
+        error('OxArpes:NoValidSites', ...
+            'PCA input contains no spatial sites with finite spectra.');
+    end
+    if size(valueValid,1) < 2
+        error('OxArpes:InsufficientSites', ...
+            'PCA requires at least two valid spatial sites.');
+    end
+    if all(std(valueValid,0,1) == 0)
+        error('OxArpes:ConstantData', ...
+            'PCA cannot analyse data with zero variance at every feature.');
+    end
 
     [coeffAll, scoreAll, latentAll, ~, explainedAll, meanSpectrumFlat] = ...
         pca(valueValid, 'Algorithm', 'svd', 'Economy', true);
@@ -238,12 +270,19 @@ function suggestedK = estimate_elbow(kList, wcss)
         return
     end
 
+    if range(kList) == 0 || range(wcss) == 0
+        return
+    end
+
     x = (kList(:) - min(kList)) / range(kList);
     y = (wcss(:) - min(wcss)) / range(wcss);
 
     firstPoint = [x(1), y(1)];
     lastPoint = [x(end), y(end)];
     lineVector = lastPoint - firstPoint;
+    if norm(lineVector) == 0
+        return
+    end
 
     distances = abs( ...
         lineVector(1) .* (firstPoint(2) - y) - ...

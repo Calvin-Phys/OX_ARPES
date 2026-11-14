@@ -5,6 +5,8 @@ function DATA = load_solaris_spin_zip(file_path)
 %   - x, optionally y, optionally z
 %   - value
 %   - region, channel, name, path
+%   Parses channel and region metadata from viewer.ini and returns channel
+%   data without collapsing distinct spin channels into a single image.
 
     % Unzip the input file into a temporary folder
     folder_path = unzip_to_temp_folder(file_path);
@@ -27,8 +29,6 @@ function DATA = load_solaris_spin_zip(file_path)
 
     % This is currently unused, but keep it if you may need metadata later.
     meta_ini = read_ini_file(meta_path); %#ok<NASGU>
-
-    [~, file_stem, ~] = fileparts(file_path);
 
     % Preallocate output struct
     DATA = struct();
@@ -96,8 +96,8 @@ function DATA = load_solaris_spin_zip(file_path)
         %
         % MATLAB equivalent:
         %   reshape as [height, width, depth], then permute to [depth, width, height].
-        value_3d = reshape(values, [width, depth, height]);
-        % value_3d = permute(value_3d, [2 1 3]);
+        value_3d = reshape(values, [height, width, depth]);
+        value_3d = permute(value_3d, [3 2 1]); % depth, width, height
 
         active_dims = find(dims > 1);
         value_dim = numel(active_dims);
@@ -118,6 +118,7 @@ function DATA = load_solaris_spin_zip(file_path)
 
                 out.v_name = 'Counts';
                 out.v_unit = 'arb. unit';
+                out.validate();
 
             case 2
                 out = OxA_CUT();
@@ -136,19 +137,14 @@ function DATA = load_solaris_spin_zip(file_path)
                 out.value = squeeze(value_3d)';
 
             case 3
-                % If OxA_MAP supports the constructor used in your regular loader:
-                out = OxA_MAP(axis_values{1}, axis_values{2}, axis_values{3}, value_3d);
-
-                % Add axis labels if these properties exist in your class.
-                % If OxA_MAP does not support these properties, remove this block.
-                out.x_name = axis_names{1};
-                out.x_unit = axis_units{1};
-
-                out.y_name = axis_names{2};
-                out.y_unit = axis_units{2};
-
-                out.z_name = axis_names{3};
-                out.z_unit = axis_units{3};
+                mapValue = permute(value_3d,[3 1 2]); % angle_x, angle_y, energy
+                out = OxA_MAP(angle_x,angle_y,energy,mapValue);
+                out.x_name = axis_names{3};
+                out.x_unit = axis_units{3};
+                out.y_name = axis_names{1};
+                out.y_unit = axis_units{1};
+                out.z_name = axis_names{2};
+                out.z_unit = axis_units{2};
 
                 out.v_name = 'Counts';
                 out.v_unit = 'arb. unit';
@@ -170,11 +166,6 @@ function DATA = load_solaris_spin_zip(file_path)
         end
 
         DATA.(fieldname) = out;
-
-        % Also create a variable in the base workspace:
-        % name = [file_name '_' channel]
-        base_var_name = matlab.lang.makeValidName([file_stem '_' channel '_' name]);
-        assignin('base', base_var_name, out);
 
     end
 
@@ -198,14 +189,16 @@ end
 
 % -------------------------------------------------------------------------
 function folder_path = unzip_to_temp_folder(file_path)
-    [pathstr, file, ~] = fileparts(file_path);
-    folder_path = fullfile(pathstr, [file '_tmp']);
-
-    if exist(folder_path, 'dir')
-        remove_temp_folder(folder_path);
+    folder_path = tempname;
+    mkdir(folder_path);
+    try
+        unzip(file_path, folder_path);
+    catch cause
+        if isfolder(folder_path)
+            rmdir(folder_path, 's');
+        end
+        rethrow(cause);
     end
-
-    unzip(file_path, folder_path);
 end
 
 % -------------------------------------------------------------------------
@@ -292,6 +285,11 @@ end
 % -------------------------------------------------------------------------
 function remove_temp_folder(folder_path)
     if exist(folder_path, 'dir')
-        rmdir(folder_path, 's');
+        try
+            rmdir(folder_path, 's');
+        catch cause
+            warning('OxArpes:TemporaryCleanupFailed', ...
+                'Could not remove temporary folder "%s": %s', folder_path, cause.message);
+        end
     end
 end

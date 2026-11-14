@@ -1,14 +1,15 @@
  classdef OxA_MAP < OxArpes_3D_Data
-    %OXA_MAP Summary of this class goes here
-    %   Detailed explanation goes here
+    %OXA_MAP Data object for angular ARPES maps across kinetic energy.
+    %   The x/y axes are emission angles and z is kinetic energy. kconvert
+    %   applies angular offsets, azimuth rotation, and energy-dependent
+    %   momentum conversion to produce an in-plane momentum map.
     
     properties
     end
     
     methods
         function obj = OxA_MAP(varargin)
-            %OXA_MAP Construct an instance of this class
-            %   Detailed explanation goes here
+            %OXA_MAP Construct an angular map and initialize axis metadata.
             obj@OxArpes_3D_Data(varargin{:});
 
             obj.name = 'MAP';
@@ -25,6 +26,36 @@
         end
         
         function KMAP = kconvert(obj)
+            %KCONVERT Convert the angle-angle-energy map to kx-ky-energy.
+            %   The physical conversion and rotated bounds are documented
+            %   inline below; interpolation maps the measured planes onto a
+            %   regular momentum grid.
+
+            obj.validate();
+            requiredInfo = {'thetax_offset','thetay_offset','azimuth_offset', ...
+                'photon_energy','workfunction'};
+            for iField = 1:numel(requiredInfo)
+                if ~isfield(obj.info, requiredInfo{iField}) || ...
+                        isempty(obj.info.(requiredInfo{iField}))
+                    error('OxArpes:MissingMetadata', ...
+                        'MAP k conversion requires info.%s.', requiredInfo{iField});
+                end
+            end
+
+            for iField = 1:numel(requiredInfo)
+                validateattributes(obj.info.(requiredInfo{iField}), {'numeric'}, ...
+                    {'scalar','real','finite'}, mfilename, ['info.' requiredInfo{iField}]);
+            end
+
+            if any(obj.z <= 0)
+                error('OxArpes:InvalidKineticEnergy', ...
+                    'MAP k conversion requires strictly positive kinetic energies.');
+            end
+            if ~(all(diff(obj.x) > 0) || all(diff(obj.x) < 0)) || ...
+                    ~(all(diff(obj.y) > 0) || all(diff(obj.y) < 0))
+                error('OxArpes:InvalidAxis', ...
+                    'MAP angular axes must be strictly monotonic.');
+            end
 
             % Constants
             CONST = 0.512316722; % [sqrt(2m)/hbar] * 1/sqrt(eV)
@@ -35,12 +66,24 @@
             % Theta offset
             y_offset = obj.y - obj.info.thetay_offset;
             x_offset = obj.x - obj.info.thetax_offset;
+            if any(abs(x_offset) >= 90) || any(abs(y_offset) >= 90)
+                error('OxArpes:InvalidAngle', ...
+                    'Offset-corrected emission angles must lie strictly between -90 and 90 degrees.');
+            end
+
+            sampleX = x_offset;
+            sampleY = y_offset;
+            sampleValue = obj.value;
+            if sampleX(1) > sampleX(end)
+                sampleX = fliplr(sampleX);
+                sampleValue = flip(sampleValue,1);
+            end
+            if sampleY(1) > sampleY(end)
+                sampleY = fliplr(sampleY);
+                sampleValue = flip(sampleValue,2);
+            end
         
             % Find K's boundary
-            thetax_max = max(x_offset);
-            thetax_min = min(x_offset);
-            thetay_max = max(y_offset);
-            thetay_min = min(y_offset);
             energy_min = min(obj.z);
             energy_max = max(obj.z);
         
@@ -49,59 +92,66 @@
             azimuth_cos = cosd(obj.info.azimuth_offset);
             azimuth_sin = sind(obj.info.azimuth_offset);
         
-            % Calculate Kx, Ky boundaries
-            common_term = CONST * sqrt(energy_min);
-            if thetax_max >= 0 && thetax_min <= 0 && thetay_max >= 0 && thetay_min <= 0 % Common case
-        
-                if obj.info.azimuth_offset == 0 % no rotation
-                    kx_max = common_term * sind(thetax_max);
-                    kx_min = common_term * sind(thetax_min);
-                    ky_max = common_term * sind(thetay_max);
-                    ky_min = common_term * sind(thetay_min);
-        
-                    kxn = length(x_offset);
-                    kyn = length(y_offset);
-        
-                else
-                    CRNR_D = [thetax_min, thetax_min, thetax_max, thetax_max; ...
-                              thetay_min, thetay_max, thetay_max, thetay_min];
-                    CRNR_K = common_term * [ cosd(CRNR_D(2,:)) .* sind(CRNR_D(1,:)); ...
-                                             sind(CRNR_D(2,:))];
-                    CRNR_KR = [azimuth_cos, azimuth_sin; ...
-                               -azimuth_sin,  azimuth_cos] * CRNR_K;
-        
-                    kx_max = max(CRNR_KR(1,:),[],"all");
-                    kx_min = min(CRNR_KR(1,:),[],"all");
-                    ky_max = max(CRNR_KR(2,:),[],"all");
-                    ky_min = min(CRNR_KR(2,:),[],"all");
-        
-                    kxn = length(x_offset)*2;
-                    kyn = length(y_offset);
-                    
-                    
-                end
-            else % Special case
-                % Calculate Kx, Ky boundaries for the special case
-                
-                if obj.info.azimuth_offset == 0 % no rotation
-                    CRNR_D = [thetax_min, thetax_min, thetax_max, thetax_max; ...
-                              thetay_min, thetay_max, thetay_max, thetay_min];
-                    CRNR_K = common_term * [ cosd(CRNR_D(2,:)) .* sind(CRNR_D(1,:)); ...
-                                             sind(CRNR_D(2,:))];
-                    CRNR_KR = [azimuth_cos, azimuth_sin; ...
-                               -azimuth_sin,  azimuth_cos] * CRNR_K;
-        
-                    kx_max = max(CRNR_KR(1,:),[],"all");
-                    kx_min = min(CRNR_KR(1,:),[],"all");
-                    ky_max = max(CRNR_KR(2,:),[],"all");
-                    ky_min = min(CRNR_KR(2,:),[],"all");
-        
-                    kxn = length(x_offset)*2;
-                    kyn = length(y_offset);
-                else
-                    % (omitted for brevity)
+            % Emission momentum before the in-plane azimuth rotation follows
+            % kx = C*sqrt(Ek)*cos(theta_y)*sin(theta_x),
+            % ky = C*sqrt(Ek)*sin(theta_y). The configured azimuth rotates
+            % this vector by -phi: [kx';ky'] = [cos(phi) sin(phi); ...
+            %                                   -sin(phi) cos(phi)]*[kx;ky].
+            % Because |theta_x| and |theta_y| are below 90 degrees, each
+            % rotated component is monotonic in theta_x for fixed theta_y.
+            % Its extrema therefore occur at the two theta_x boundaries;
+            % include the possible stationary theta_y values and both energy
+            % endpoints to bound centred and off-centre maps consistently.
+            thetaXBounds = [sampleX(1), sampleX(end)];
+            thetaYBounds = [sampleY(1), sampleY(end)];
+            thetaYCandidates = thetaYBounds;
+            for iXBound = 1:numel(thetaXBounds)
+                sinX = sind(thetaXBounds(iXBound));
+                componentCos = [azimuth_cos * sinX, -azimuth_sin * sinX];
+                componentSin = [azimuth_sin, azimuth_cos];
+                for iComponent = 1:2
+                    stationaryAngle = atan2d(componentSin(iComponent), ...
+                        componentCos(iComponent));
+                    for iPeriod = -1:1
+                        candidate = stationaryAngle + 180 * iPeriod;
+                        if candidate > thetaYBounds(1) && candidate < thetaYBounds(2)
+                            thetaYCandidates(end + 1) = candidate; %#ok<AGROW>
+                        end
+                    end
                 end
             end
+
+            thetaXCandidates = repmat(thetaXBounds(:), 1, numel(thetaYCandidates));
+            thetaYCandidates = repmat(thetaYCandidates, numel(thetaXBounds), 1);
+            thetaYCandidates = thetaYCandidates(:).';
+            thetaXCandidates = thetaXCandidates(:).';
+            energyBounds = unique([energy_min, energy_max]);
+            kxBounds = zeros(1, numel(thetaXCandidates) * numel(energyBounds));
+            kyBounds = zeros(size(kxBounds));
+            boundIndex = 0;
+            for iEnergy = 1:numel(energyBounds)
+                commonTerm = CONST * sqrt(energyBounds(iEnergy));
+                kxSource = commonTerm .* cosd(thetaYCandidates) .* sind(thetaXCandidates);
+                kySource = commonTerm .* sind(thetaYCandidates);
+                kxRotated = azimuth_cos .* kxSource + azimuth_sin .* kySource;
+                kyRotated = -azimuth_sin .* kxSource + azimuth_cos .* kySource;
+                range = boundIndex + (1:numel(kxSource));
+                kxBounds(range) = kxRotated;
+                kyBounds(range) = kyRotated;
+                boundIndex = boundIndex + numel(kxSource);
+            end
+
+            kx_min = min(kxBounds);
+            kx_max = max(kxBounds);
+            ky_min = min(kyBounds);
+            ky_max = max(kyBounds);
+
+            % Preserve approximately the original angular sampling density
+            % after rotation without relying on a centred angular range.
+            kxn = max(2, ceil(abs(azimuth_cos)*numel(x_offset) + ...
+                abs(azimuth_sin)*numel(y_offset)));
+            kyn = max(2, ceil(abs(azimuth_cos)*numel(y_offset) + ...
+                abs(azimuth_sin)*numel(x_offset)));
         
             % Create Kx, Ky grids
             kx = linspace(kx_min, kx_max, kxn);
@@ -118,11 +168,20 @@
                 Eki = obj.z(i);
         
                 % Calculate new thetay (Y0) and thetax (X0)
-                Y0 = asind(KY_r / CONST ./ sqrt(Eki));
-                X0 = asind(KX_r / CONST / sqrt(Eki) ./ cosd(Y0));
-        
+                yArgument = KY_r / CONST ./ sqrt(Eki);
+                validQuery = abs(yArgument) <= 1;
+                Y0 = nan(size(yArgument));
+                Y0(validQuery) = asind(yArgument(validQuery));
+
+                xArgument = KX_r / CONST / sqrt(Eki) ./ cosd(Y0);
+                validQuery = validQuery & isfinite(xArgument) & abs(xArgument) <= 1;
+                X0 = nan(size(xArgument));
+                X0(validQuery) = asind(xArgument(validQuery));
+
                 % Interpolate data
-                data_new(:,:,i) = interp2(y_offset, x_offset, obj.value(:,:,i), Y0, X0, 'spline', 0);
+                plane = interp2(sampleY, sampleX, sampleValue(:,:,i), Y0, X0, 'spline', 0);
+                plane(~isfinite(plane)) = 0;
+                data_new(:,:,i) = plane;
             end
             data_new(data_new < 0) = 0;
         

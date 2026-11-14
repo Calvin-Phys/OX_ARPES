@@ -1,12 +1,14 @@
 function DATA = load_ALBA_krx_S(filename)
-% LOAD_KRX_DEFLECTOR_MAP Load Scienta Omicron .krx files with 2D or 3D output
+%LOAD_ALBA_KRX_S Read the spin-resolved Scienta Omicron .krx variant.
 %
-% Output:
-%   krx - struct with image(s), metadata, axis scaling, and options
+%   The stored MSA entries reshape the image stack into spin, angle, and
+%   energy dimensions. That interpretation is retained pending verification
+%   against representative spin-resolved files.
 
     krx = struct();
     fid = fopen(filename, 'rb');
     assert(fid > 0, 'Could not open file.');
+    fileCleanup = onCleanup(@() fclose(fid)); %#ok<NASGU>
 
     % part credit to HK Chen
     % --- Step 1: Read PAS ---
@@ -129,8 +131,9 @@ function DATA = load_ALBA_krx_S(filename)
         image_cube(:, :, ii+1) = databuffer;
     end
 
-    fclose(fid);
-
+    % Reorder the image stack using the file's MSA dimensions to produce
+    % VALUE(spin, angle, energy), matching the OxA_MAP constructor axes.
+    % This format-specific reshape is intentionally unchanged until verified.
     % -- Output data --
     krx.image = permute(reshape(image_cube,[krx.msa(1)*krx.msa(2), krx.msa(3)*krx.msa(4), krx.msa(5)]),[3 2 1]);
 

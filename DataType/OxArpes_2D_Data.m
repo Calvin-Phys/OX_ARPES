@@ -1,6 +1,8 @@
 classdef OxArpes_2D_Data
-    %OXARPES_2D_DATA Summary of this class goes here
-    %   Detailed explanation goes here
+    %OXARPES_2D_DATA Base class for ARPES data sampled on two axes.
+    %   X and Y are coordinate vectors and VALUE is indexed as VALUE(x,y).
+    %   INFO stores acquisition metadata; methods provide display and common
+    %   image processing, cropping, and validation operations.
     
     properties
         name;
@@ -19,22 +21,27 @@ classdef OxArpes_2D_Data
     methods
         % constructor
         function obj = OxArpes_2D_Data(varargin)
-            %OXARPES_2D_DATA Construct an instance of this class
-            %   Detailed explanation goes here
+            %OXARPES_2D_DATA Construct an empty object or populate its fields.
             if nargin == 3
-                obj.x = varargin{1};
-                obj.y = varargin{2};
+                obj.x = varargin{1}(:).';
+                obj.y = varargin{2}(:).';
                 obj.value = varargin{3};
+                obj.validate();
             elseif nargin == 1
-                obj.x = varargin{1}.x;
-                obj.y = varargin{1}.y;
+                obj.x = varargin{1}.x(:).';
+                obj.y = varargin{1}.y(:).';
                 obj.value = varargin{1}.value;
+                obj.validate();
+            elseif nargin ~= 0
+                error('OxArpes:InvalidConstructor', ...
+                    'Expected zero arguments, a data structure, or x, y, value.');
             end
 
         end
 
         % show / display
         function ha1 = show(obj)
+            %SHOW Display the image with axis coordinates and labels.
             h1 = figure('Name',obj.name);
             ha1 = axes('parent',h1);
             
@@ -87,8 +94,12 @@ classdef OxArpes_2D_Data
         
         % basic operations
         function obj = set_contrast(obj)
-            n_data = sort(obj.value(:));
-            upbound = n_data(round(0.995*length(n_data)));
+            %SET_CONTRAST Limit high display values using the existing rule.
+            n_data = sort(obj.value(isfinite(obj.value)));
+            if isempty(n_data)
+                return
+            end
+            upbound = n_data(max(1, round(0.995*length(n_data))));
 
 %             upbound = prctile(obj.value(:), 99.5);
             obj.value(obj.value > upbound) = upbound;
@@ -101,12 +112,18 @@ classdef OxArpes_2D_Data
         end
 
         function NEW_DATA = truncate(obj,xmin,xmax,ymin,ymax)
+            %TRUNCATE Crop the image to coordinate limits on x and y.
             NEW_DATA = obj;
             [~,nxmin] = min(abs(obj.x-xmin));
             [~,nxmax] = min(abs(obj.x-xmax));
 
             [~,nymin] = min(abs(obj.y-ymin));
             [~,nymax] = min(abs(obj.y-ymax));
+
+            nx = sort([nxmin nxmax]);
+            ny = sort([nymin nymax]);
+            nxmin = nx(1); nxmax = nx(2);
+            nymin = ny(1); nymax = ny(2);
 
             NEW_DATA.x = NEW_DATA.x(nxmin:nxmax);
             NEW_DATA.y = NEW_DATA.y(nymin:nymax);
@@ -115,7 +132,18 @@ classdef OxArpes_2D_Data
         end
 
         function NEW_DATA = truncate_idx(obj,nxmin,nxmax,nymin,nymax)
+            %TRUNCATE_IDX Crop the image using inclusive axis indices.
             NEW_DATA = obj;
+
+            nx = sort([nxmin nxmax]);
+            ny = sort([nymin nymax]);
+            nxmin = nx(1); nxmax = nx(2);
+            nymin = ny(1); nymax = ny(2);
+
+            validateattributes([nxmin nxmax], {'numeric'}, ...
+                {'integer','positive','<=',numel(obj.x)});
+            validateattributes([nymin nymax], {'numeric'}, ...
+                {'integer','positive','<=',numel(obj.y)});
 
             NEW_DATA.x = NEW_DATA.x(nxmin:nxmax);
             NEW_DATA.y = NEW_DATA.y(nymin:nymax);
@@ -124,6 +152,7 @@ classdef OxArpes_2D_Data
         end
 
         function NEW_DATA = block_reduce(obj, nx, ny)
+            %BLOCK_REDUCE Average samples in contiguous x and y blocks.
         
             % 2D block averaging with independent block sizes:
             % nx : block size along x-direction (first dimension)
@@ -132,6 +161,9 @@ classdef OxArpes_2D_Data
             if nargin < 3
                 error('block_reduce requires nx and ny.')
             end
+
+            validateattributes(nx, {'numeric'}, {'scalar','integer','positive','<=',numel(obj.x)});
+            validateattributes(ny, {'numeric'}, {'scalar','integer','positive','<=',numel(obj.y)});
         
             if nx <= 1 && ny <= 1
                 NEW_DATA = obj;
@@ -158,7 +190,8 @@ classdef OxArpes_2D_Data
             V_block = reshape(V_trunc, nx, Nx_new/nx, ny, Ny_new/ny);
         
             % Average over block dimensions
-            V_block = squeeze(mean(mean(V_block, 1), 3));
+            V_block = mean(mean(V_block, 1), 3);
+            V_block = reshape(V_block, Nx_new/nx, Ny_new/ny);
         
             % New x-axis (block averaged)
             x_block = reshape(x_trunc, nx, Nx_new/nx);
@@ -181,6 +214,9 @@ classdef OxArpes_2D_Data
             % sig_x and sig_y to smooth the data. Returns a new OxA_CUT object
             % with smoothed data.
             
+            validateattributes(sig_x, {'numeric'}, {'scalar','real','finite','positive'});
+            validateattributes(sig_y, {'numeric'}, {'scalar','real','finite','positive'});
+
             % sigma - standard deviation
             rad_x = ceil(3.5*sig_x);
             rad_y = ceil(3.5*sig_y);
@@ -223,6 +259,9 @@ classdef OxArpes_2D_Data
             % >>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             % Gaussian Smooth 
             
+            validateattributes(sig_x, {'numeric'}, {'scalar','real','finite','positive'});
+            validateattributes(sig_y, {'numeric'}, {'scalar','real','finite','positive'});
+
             % sigma - standard deviation
             rad_x = ceil(3.5*sig_x);
             rad_y = ceil(3.5*sig_y);
@@ -278,6 +317,11 @@ classdef OxArpes_2D_Data
             % Curvature 
             % ref: Zhang, P. et al. A precise method for visualizing dispersive features in image plots. Rev. Sci. Instrum. 82, 043712 (2011).
             
+            validateattributes(sig_x, {'numeric'}, {'scalar','real','finite','positive'});
+            validateattributes(sig_y, {'numeric'}, {'scalar','real','finite','positive'});
+            validateattributes(C1, {'numeric'}, {'scalar','real','finite','positive'});
+            validateattributes(C2, {'numeric'}, {'scalar','real','finite','positive'});
+
             % sigma - standard deviation
             rad_x = ceil(3.5*sig_x);
             rad_y = ceil(3.5*sig_y);
@@ -319,6 +363,9 @@ classdef OxArpes_2D_Data
             A1 = max(Fu.^2,[],"all");
             A2 = max(Fv.^2,[],"all");
 
+            A1 = max(A1,eps);
+            A2 = max(A2,eps);
+
             D2y = -Fuu./(C2*A1+Fu.^2).^(3/2);
             D2x = -Fvv./(C1*A2+Fv.^2).^(3/2);
     
@@ -334,18 +381,41 @@ classdef OxArpes_2D_Data
             D2y_CUT.value = D2y(1+w1:L+w1,1+w2:J+w2);
         end
 
-        function NCUT = self_normlaise(obj,dir)
+        function NCUT = self_normalise(obj,dir)
+            %SELF_NORMALISE Divide by the selected-axis mean profile.
+            if ~(ischar(dir) || (isstring(dir) && isscalar(dir)))
+                error('OxArpes:InvalidDirection', 'Direction must be ''x'' or ''y''.');
+            end
             NCUT = obj;
-            switch dir
+            switch lower(char(dir))
                 case 'x'
                     ss = mean(obj.value,2);
-                    ss = ss./mean(ss,"all");
+                    profileMean = mean(ss,"all");
+                    if ~isfinite(profileMean) || abs(profileMean) < eps
+                        error('OxArpes:InvalidNormalisation', ...
+                            'The x normalisation profile has zero or nonfinite mean.');
+                    end
+                    ss = ss./profileMean;
+                    ss(abs(ss) < eps) = 1;
                     NCUT.value = NCUT.value./repmat(ss,1,size(NCUT.value,2));
                 case 'y'
                     ss = mean(obj.value,1);
-                    ss = ss./mean(ss,"all");
+                    profileMean = mean(ss,"all");
+                    if ~isfinite(profileMean) || abs(profileMean) < eps
+                        error('OxArpes:InvalidNormalisation', ...
+                            'The y normalisation profile has zero or nonfinite mean.');
+                    end
+                    ss = ss./profileMean;
+                    ss(abs(ss) < eps) = 1;
                     NCUT.value = NCUT.value./repmat(ss,size(NCUT.value,1),1);
+                otherwise
+                    error('OxArpes:InvalidDirection', 'Direction must be ''x'' or ''y''.');
             end
+        end
+
+        function NCUT = self_normlaise(obj,dir)
+            %SELF_NORMLAISE Backward-compatible wrapper for the old typo.
+            NCUT = obj.self_normalise(dir);
         end
 
         % others
@@ -359,6 +429,32 @@ classdef OxArpes_2D_Data
             ny = length(obj.y);
             P = polyfit(1:ny,obj.y,1);
             dy = P(1);
+        end
+
+        function validate(obj)
+            %VALIDATE Check coordinate lengths and the VALUE array shape.
+            %VALIDATE Check the public 2-D axis/value contract.
+            validateattributes(obj.x, {'numeric'}, {'vector','real','finite','nonempty'});
+            validateattributes(obj.y, {'numeric'}, {'vector','real','finite','nonempty'});
+            validateattributes(obj.value, {'numeric','logical'}, {'2d','nonempty'});
+
+            if size(obj.value,1) ~= numel(obj.x) || size(obj.value,2) ~= numel(obj.y)
+                error('OxArpes:DimensionMismatch', ...
+                    'value must have size [numel(x), numel(y)].');
+            end
+
+            if numel(obj.x) > 1 && any(diff(obj.x) == 0)
+                error('OxArpes:DuplicateAxis', 'x must not contain duplicate adjacent coordinates.');
+            elseif numel(obj.x) > 1 && ~(all(diff(obj.x) > 0) || all(diff(obj.x) < 0))
+                error('OxArpes:NonMonotonicAxis', ...
+                    'x must be strictly increasing or strictly decreasing.');
+            end
+            if numel(obj.y) > 1 && any(diff(obj.y) == 0)
+                error('OxArpes:DuplicateAxis', 'y must not contain duplicate adjacent coordinates.');
+            elseif numel(obj.y) > 1 && ~(all(diff(obj.y) > 0) || all(diff(obj.y) < 0))
+                error('OxArpes:NonMonotonicAxis', ...
+                    'y must be strictly increasing or strictly decreasing.');
+            end
         end
 
     end

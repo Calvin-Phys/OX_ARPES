@@ -1,4 +1,4 @@
-function [new_data, debug] = sym_map_data_autoMask_padded(data, opts)
+function [new_data, debug] = sym_map_data_autoMask(data, opts)
 % Symmetrize 3D map with C3 + mirror symmetry around (0,0), with:
 % - automatic outside-mask detection (border-connected zero background)
 % - optional feathering
@@ -20,6 +20,15 @@ function [new_data, debug] = sym_map_data_autoMask_padded(data, opts)
 %   pad_value      (default 0)        % value to put in padded margin (0 recommended)
 
     if nargin < 2, opts = struct(); end
+    if ~isstruct(opts)
+        error('OxArpes:InvalidOptions', 'opts must be a structure.');
+    end
+    if ~isobject(data) || ~isprop(data,'x') || ~isprop(data,'y') || ...
+            ~isprop(data,'z') || ~isprop(data,'value')
+        error('OxArpes:InvalidData', ...
+            'data must expose x, y, z, and value properties.');
+    end
+    data.validate();
     if ~isfield(opts,'x_offset'), opts.x_offset = 0; end
     if ~isfield(opts,'y_offset'), opts.y_offset = 0; end
     if ~isfield(opts,'interp_method'), opts.interp_method = "linear"; end
@@ -32,12 +41,22 @@ function [new_data, debug] = sym_map_data_autoMask_padded(data, opts)
     if ~isfield(opts,'pad_value'), opts.pad_value = 0; end
 
     % Shift to symmetry center
-    x0 = data.x - opts.x_offset;
-    y0 = data.y - opts.y_offset;
+    x0 = data.x(:).' - opts.x_offset;
+    y0 = data.y(:).' - opts.y_offset;
 
     % Output grid
-    if isfield(opts,'x_out'), x = opts.x_out; else, x = -2.1:0.01:2.1; end
-    if isfield(opts,'y_out'), y = opts.y_out; else, y = -2.1:0.01:2.1; end
+    if isfield(opts,'x_out'), x = opts.x_out(:).'; else, x = -2.1:0.01:2.1; end
+    if isfield(opts,'y_out'), y = opts.y_out(:).'; else, y = -2.1:0.01:2.1; end
+    validateattributes(x, {'numeric'}, {'vector','real','finite','nonempty'});
+    validateattributes(y, {'numeric'}, {'vector','real','finite','nonempty'});
+    validateattributes(opts.pad_px, {'numeric'}, {'scalar','real','finite','nonnegative'});
+    validateattributes(opts.feather_px, {'numeric'}, {'scalar','real','finite','nonnegative'});
+    validateattributes(opts.min_weight, {'numeric'}, {'scalar','real','finite','nonnegative'});
+    validMethods = {'linear','nearest','cubic','spline','makima'};
+    if ~any(strcmpi(char(opts.interp_method), validMethods))
+        error('OxArpes:InvalidInterpolationMethod', ...
+            'interp_method must be linear, nearest, cubic, spline, or makima.');
+    end
     [Y, X] = meshgrid(y, x);
 
     new_data = data;
@@ -55,6 +74,11 @@ function [new_data, debug] = sym_map_data_autoMask_padded(data, opts)
     % Precompute padded coordinate vectors (assume roughly uniform grid)
     dx = median(diff(x0));
     dy = median(diff(y0));
+    if numel(x0) < 2 || numel(y0) < 2 || any(diff(x0) <= 0) || any(diff(y0) <= 0) || ...
+            ~isfinite(dx) || ~isfinite(dy)
+        error('OxArpes:InvalidAxis', ...
+            'x and y must each contain at least two strictly increasing coordinates.');
+    end
     p  = max(0, round(opts.pad_px));
 
     x_in = [ (x0(1) - dx*(p:-1:1)), x0, (x0(end) + dx*(1:p)) ];

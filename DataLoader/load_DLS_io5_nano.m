@@ -1,7 +1,7 @@
 function DATA = load_DLS_io5_nano(file_path)
-% LOAD_DLS_IO5_nano
-%   Cheng Peng, Oxford Physics
-%   2026 July
+%LOAD_DLS_IO5_NANO Read supported DLS i05 nanoARPES NeXus scans.
+%   Dispatches by scan title and constructs the corresponding CUT, MAP, or
+%   higher-dimensional data object, then attaches acquisition metadata.
     
     %   -------------------------
     title = h5read(file_path,'/entry1/title');
@@ -61,6 +61,7 @@ function DATA = load_DLS_io5_nano(file_path)
                 y = mean(h5read(file_path,'/entry1/analyser/smy'),2);
                 z = mean(h5read(file_path,'/entry1/analyser/energies'),[2 3]);
                 k = h5read(file_path,'/entry1/analyser/angles');
+                % Normalize source dimensions to the package order (x,y,k,z).
                 value = permute(h5read(file_path,'/entry1/analyser/data'),[4 3 2 1]);
                 DATA = OxArpes_4D_Data(x,y,z,k,value);
                 DATA.x_name = 'smx';
@@ -76,6 +77,7 @@ function DATA = load_DLS_io5_nano(file_path)
                 y = mean(h5read(file_path,'/entry1/analyser/value'),2);
                 z = mean(h5read(file_path,'/entry1/analyser/energies'),[2 3]);
                 k = h5read(file_path,'/entry1/analyser/angles');
+                % Normalize source dimensions to the package order (x,y,k,z).
                 value = permute(h5read(file_path,'/entry1/analyser/data'),[4 3 2 1]);
                 DATA = OxArpes_4D_Data(x,y,z,k,value);
                 DATA.x_name = 'smx';
@@ -90,11 +92,17 @@ function DATA = load_DLS_io5_nano(file_path)
             end
     
         else
+            warning('OxArpes:UnsupportedNanoScan', ...
+                'Unsupported DLS i05 nano scan command: %s', char(string(title)));
             DATA = [];
+            return
         end
 
-    catch
-        DATA = [];
+    catch cause
+        failure = MException('OxArpes:NanoLoadFailed', ...
+            'Failed to interpret DLS i05 nano file "%s".', file_path);
+        failure = addCause(failure, cause);
+        throwAsCaller(failure);
     end
 
     % ------- add Info
@@ -119,4 +127,3 @@ function DATA = load_DLS_io5_nano(file_path)
     DATA.info.beamline = 'DLS_i05_nano';
 
 end
-

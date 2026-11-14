@@ -1,5 +1,8 @@
 function MAP = load_scienta_zip(file_path)
-    % Load 3D data from a Scienta zip file and return an OxA_MAP object
+    %LOAD_SCIENTA_ZIP Read a Scienta binary export as an OxA_MAP object.
+    %   Extracts the archive to a temporary directory, parses viewer.ini,
+    %   reads and reshapes the binary cube, and removes temporary files on
+    %   function exit.
 
     % Unzip the input file into a temporary folder
     folder_path = unzip_to_temp_folder(file_path);
@@ -34,10 +37,16 @@ end
 
 % Additional functions
 function folder_path = unzip_to_temp_folder(file_path)
-    [path, file, ext] = fileparts(file_path);
-    folder_path = fullfile(path,[file '_tmp']);
-    % viewer_path = fullfile(folder_path, 'viewer.ini');
-    unzip(file_path,folder_path);
+    folder_path = tempname;
+    mkdir(folder_path);
+    try
+        unzip(file_path,folder_path);
+    catch cause
+        if isfolder(folder_path)
+            rmdir(folder_path,'s');
+        end
+        rethrow(cause);
+    end
 end
 
 function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_mod,bmln,exp_date] = extract_data_header(folder_path)
@@ -47,16 +56,20 @@ function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_
     viewer_path = fullfile(folder_path, 'viewer.ini');
 
     fileID = fopen(viewer_path);
+    if fileID < 0
+        error('OxArpes:FileOpenFailed', 'Could not open "%s".', viewer_path);
+    end
+    viewerCleanup = onCleanup(@() fclose(fileID));
     tline = fgetl(fileID);
 
     while ~startsWith(tline,'width=')
         tline = fgetl(fileID);
     end
-    nz = str2num(tline(7:end));
+    nz = str2double(tline(7:end));
     tline = fgetl(fileID);
-    ny = str2num(tline(8:end));
+    ny = str2double(tline(8:end));
     tline = fgetl(fileID);
-    nx = str2num(tline(7:end));
+    nx = str2double(tline(7:end));
 
     while ~startsWith(tline,'name=')
         tline = fgetl(fileID);
@@ -85,17 +98,21 @@ function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_
     tline = fgetl(fileID);
     dx = str2double(tline(13:end));
 
-    fclose(fileID);
+    clear viewerCleanup
 
     % open bin .ini
     fileID = fopen([bin_path(1:end-3) 'ini']);
+    if fileID < 0
+        error('OxArpes:FileOpenFailed', 'Could not open the binary-data INI file.');
+    end
+    binaryIniCleanup = onCleanup(@() fclose(fileID));
 
     tline = fgetl(fileID);
     while ~startsWith(tline,'byteperpoint=')
         tline = fgetl(fileID);
     end
     nUnit = str2double(tline(14:end));
-    fclose(fileID);
+    clear binaryIniCleanup
 
     if nUnit == 4
         Precision = 'single';
@@ -105,6 +122,10 @@ function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_
 
     % open map .ini
     fileID = fopen(map_name);
+    if fileID < 0
+        error('OxArpes:FileOpenFailed', 'Could not open "%s".', map_name);
+    end
+    mapCleanup = onCleanup(@() fclose(fileID));
     tline = fgetl(fileID);
 
     while ~startsWith(tline,'Lens Mode=')
@@ -132,14 +153,17 @@ function [nz, ny, nx, bin_path, z0, dz, y0, dy, x0, dx, Precision, lm,pe,hv,aqc_
     end
     exp_date = tline(6:end);
     
-    fclose(fileID);
+    clear mapCleanup
 end
 
 function value = read_data(bin_path, Precision)
     % Add code to read the data from the binary file
     fileID = fopen(bin_path);
+    if fileID < 0
+        error('OxArpes:FileOpenFailed', 'Could not open "%s".', bin_path);
+    end
+    fileCleanup = onCleanup(@() fclose(fileID)); %#ok<NASGU>
     value = fread(fileID, Precision);
-    fclose(fileID);
 end
 
 function [value, x, y, z] = process_data(value, nx, ny, nz, dx, dy, dz, x0, y0, z0)
@@ -152,8 +176,14 @@ function [value, x, y, z] = process_data(value, nx, ny, nz, dx, dy, dz, x0, y0, 
 end
 
 function remove_temp_folder(folder_path)
-    while ~rmdir(folder_path,'s')
-        pause(0.01);
+    if ~isfolder(folder_path)
+        return
+    end
+    try
+        rmdir(folder_path,'s');
+    catch cause
+        warning('OxArpes:TemporaryCleanupFailed', ...
+            'Could not remove temporary folder "%s": %s', folder_path, cause.message);
     end
 end
 

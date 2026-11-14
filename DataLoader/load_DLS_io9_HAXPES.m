@@ -1,4 +1,7 @@
 function DATA = load_DLS_io9_HAXPES(file_path)
+%LOAD_DLS_IO9_HAXPES Read DLS i09 HAXPES spectra and maps from HDF5.
+%   Returns a 1-D spectrum or 2-D image according to the stored image-data
+%   dimensions and includes the beamline scan metadata in INFO.
     %LOAD_DLS_IO9 load 1D/2D data at i09 HAXPES beamline, DLS
     %   08/06/2026 Cheng Peng, University of Oxford
      
