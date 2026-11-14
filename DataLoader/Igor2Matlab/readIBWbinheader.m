@@ -1,7 +1,7 @@
 function H = readIBWbinheader(FFN);
-% readIBWbinheader - read BinHeader segment of Igor IBW file
-%  H = readIBWbinheader('foo') reads BinHeader of file Foo.ibw
-%   IBW version 2,5 only
+%READIBWBINHEADER Read the binary-header segment of an Igor wave file.
+%   H = READIBWBINHEADER(FFN) decodes version-specific fields in the binary
+%   header. This reader supports Igor Binary Wave versions 2 and 5.
 MAXDIMS = 4;
 
 fid = fopen(FFN,'r');

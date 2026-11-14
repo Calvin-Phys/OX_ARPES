@@ -1,5 +1,7 @@
 function CUT = load_Soleil_Cassiopee(file_path)
-    % Load 2D data from a Scienta text file and return an OxA_CUT object
+    %LOAD_SOLEIL_CASSIOPEE Read a Cassiopee Scienta text export as a cut.
+    %   Reconstructs coordinate axes from the text header, loads intensity
+    %   values, and returns them in an OxA_CUT object.
 
     % Open the file and read all lines
     fileID = fopen(file_path);

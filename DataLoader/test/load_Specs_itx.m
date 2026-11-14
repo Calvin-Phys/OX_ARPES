@@ -1,9 +1,7 @@
 function DATA = load_Specs_itx(file_path)
-% The function load_SPECS_itx(filepath) is designed
-% to load the SPECS Prodigy itx data files into the workspace.
-% Input varargin{1} is a string that contain the full filename
-% with its path
-% by Jiabao Yang, jiabao.yang@mpi-halle.mpg.de
+%LOAD_SPECS_ITX Read a SPECS Prodigy Igor text export.
+%   DATA = LOAD_SPECS_ITX(FILE_PATH) parses the text-wave header and values,
+%   then returns the corresponding OX_ARPES data representation.
 
 %start reading
 fid = fopen(file_path);

@@ -1,6 +1,7 @@
 function D = IBWread(FN);
-% IBWread - read Igor wave from IBW file
-%   D = IBWread('Foo.ibw') reads Igor file Foo.ibw into struct D.
+%IBWREAD Decode an Igor Pro binary-wave (.ibw) file into a MATLAB structure.
+%   D = IBWREAD(FN) reads the binary and wave headers, wave payload, scaling,
+%   and notes supported by this Igor2Matlab reader.
 
 if exist('fullfilename', 'file'), FFN = fullfilename(FN, cd, '.ibw');
 else, FFN = FN;

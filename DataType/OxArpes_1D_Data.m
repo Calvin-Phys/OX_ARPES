@@ -12,8 +12,8 @@ classdef OxArpes_1D_Data
         v_name;
         v_unit;
 
-        x; 
-        value; 
+        x;      % Coordinate values for the 1-D measurement.
+        value;  % Signal intensity or counts corresponding to x.
     end
     
     methods

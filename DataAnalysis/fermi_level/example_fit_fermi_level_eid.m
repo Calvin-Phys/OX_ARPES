@@ -1,0 +1,26 @@
+%EXAMPLE_FIT_FERMI_LEVEL_EID Fit and plot Fermi edges for an EID example.
+%   Requires UNG1_0022UNG1_022_ksp and the OX_ARPES analysis functions to be
+%   available in the MATLAB workspace and path. The reusable fitting API is
+%   implemented in fit_fermi_level_eid.m.
+
+data = ox_energy_intensity_distribution(UNG1_0022UNG1_022_ksp);
+results = repmat(fit_fermi_edge_ox([], []), 1, numel(data.info.eid_q));
+for iQuantile = 1:numel(data.info.eid_q)
+    results(iQuantile) = fit_fermi_edge_ox(data.y, data.info.eid_bkgd(:, iQuantile), ...
+        'Temperature', 20, ...
+        'Resolution', 0.05, ...
+        'Fermi0', 0, ...
+        'FitWindow', 0.2, ...
+        'FixTemperature', true, ...
+        'FixResolution', false, ...
+        'Debug', false);
+end
+
+data.show();
+hold on
+for iQuantile = 1:size(data.info.eid_bkgd, 2)
+    plot(data.info.eid_bkgd(:, iQuantile), data.y);
+    intensityAtFermi = interp1(data.y, data.info.eid_bkgd(:, iQuantile), ...
+        results(iQuantile).EF, 'linear');
+    scatter(intensityAtFermi, results(iQuantile).EF);
+end

@@ -1,7 +1,8 @@
 function WF = get_beamline_workfunction(location,exp_date,hv,pass_energy)
-%GET_BEAMLINE_WORKFUNCTION Estimate work function for a beamline and energy.
-%   LOCATION and EXP_DATE select beamline-specific calibration data; HV and
-%   PASS_ENERGY are used by the applicable calibration branch.
+%GET_BEAMLINE_WORKFUNCTION Estimate a beamline work function from stored rules.
+%   WF = GET_BEAMLINE_WORKFUNCTION(LOCATION,EXP_DATE,HV,PASS_ENERGY) selects
+%   a facility-specific constant or interpolates a photon-energy calibration.
+%   PASS_ENERGY is accepted for the current interface but is not used below.
 
     switch location
         case {'MAXIV','Bloch','MAXIV_Bloch'}

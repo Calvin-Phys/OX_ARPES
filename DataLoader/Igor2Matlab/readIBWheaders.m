@@ -1,7 +1,7 @@
 function [BH, H, FFN] = readIBWheaders(FFN);
-% readIBWheaders - read BinHeader & WaveHeader segments of Igor IBW file
-%  [BH, WH, FFN] = readIBWheaders('foo') reads BinHeader & WaveHeader of
-%   file Foo.ibw - Versions 2 and 5 only. FFN is full filename.
+%READIBWHEADERS Read the binary and wave-header segments of an Igor file.
+%   [BH,H,FFN] = READIBWHEADERS(FFN) resolves the filename and decodes its
+%   BinHeader and WaveHeader structures for the supported file versions.
 
 % % 1 byte char
 % % 2 bytes short

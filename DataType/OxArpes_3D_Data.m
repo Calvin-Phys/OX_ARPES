@@ -18,7 +18,7 @@ classdef OxArpes_3D_Data
         x; % deflector angle - Theta X [deg]
         y; % angle - Theta Y [deg]
         z; % kinetic energy - Energy [eV]
-        value; % data
+        value; % Measured values arranged as [numel(x), numel(y), numel(z)].
     end
     
     methods
@@ -44,6 +44,7 @@ classdef OxArpes_3D_Data
 
         % show / display
         function show(obj)
+            %SHOW Open the 3-D data viewer for this object.
 
             UI = OxArpes_DataViewer_3D(obj);
 
@@ -240,6 +241,7 @@ classdef OxArpes_3D_Data
         end
 
         function KMAP = interpolate_x(obj)
+            %INTERPOLATE_X Refine the x-axis grid and interpolate the data cube.
             NX = 3;
 
             KMAP = obj;
@@ -258,6 +260,7 @@ classdef OxArpes_3D_Data
         end
 
         function NEW_DATA = truncate(obj,xmin,xmax,ymin,ymax,zmin,zmax)
+            %TRUNCATE Keep samples nearest the requested physical bounds.
             NEW_DATA = obj;
             [~,nxmin] = min(abs(obj.x-xmin));
             [~,nxmax] = min(abs(obj.x-xmax));
@@ -307,6 +310,8 @@ classdef OxArpes_3D_Data
         end
 
         function NEW_DATA = block_reduce(obj, nx, ny, nz)
+            %BLOCK_REDUCE Average non-overlapping blocks along all three axes.
+            %   Trailing samples that do not form complete blocks are omitted.
 
             % 3D block averaging with independent block sizes:
             % nx : block size along x (1st dimension)
@@ -376,6 +381,7 @@ classdef OxArpes_3D_Data
         end
 
         function R_DATA = z_rotate(obj,deg,zero_center)
+            %Z_ROTATE Rotate each z-plane around the in-plane origin and resample.
             % Create Kx, Ky grids
             kx = obj.x;
             ky = obj.y;
@@ -408,18 +414,21 @@ classdef OxArpes_3D_Data
 
         % others
         function dx = get_dx(obj)
+            %GET_DX Estimate the first-axis step from a linear fit to indices.
             nx = length(obj.x);
             P = polyfit(1:nx,obj.x,1);
             dx = P(1);
         end
 
         function dy = get_dy(obj)
+            %GET_DY Estimate the second-axis step from a linear fit to indices.
             ny = length(obj.y);
             P = polyfit(1:ny,obj.y,1);
             dy = P(1);
         end
 
         function dz = get_dz(obj)
+            %GET_DZ Estimate the third-axis step from a linear fit to indices.
             nz = length(obj.z);
             P = polyfit(1:nz,obj.z,1);
             dz = P(1);

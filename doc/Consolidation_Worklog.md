@@ -47,3 +47,14 @@ The `.mlapp` apps were not changed. For the user’s planned manual conversion, 
 - The MAP equations and rotation conventions were checked from the implementation and documented, but scientific calibration still needs a trusted reference scan or beamline-owner confirmation.
 - Loader behavior remains unverified against real beamline files, particularly the retained KRX interpretation and per-facility metadata conventions.
 - MATLAB release/toolbox availability was not probed during this consolidation. The Volume Viewer syntax was updated to avoid the newer `Name=Value` grammar.
+
+## Reconciliation with the `OX_ARPES` checkout
+
+The source checkout's committed `main` (`8802661`) is already the parent of the primary checkout's consolidation commit (`3f417c4`), so there were no source-only commits to merge. The source working tree did contain uncommitted changes. I reconciled those against the primary copy rather than replacing whole files:
+
+- Merged improved help text from the source into the Igor2Matlab reader headers and the SPECS ITX reader, added axis and method comments to the 1-D/2-D/3-D data containers, and refined the work-function helper help to clarify that `pass_energy` is retained in the interface but currently unused.
+- Preserved the primary versions of the overlapping DataType and active DataLoader changes because they contain the requested physics branch, canonical 4-D ordering, explicit schema selection, safe empty-data returns, and headless loader API. The source versions would remove or weaken several of those fixes.
+- Preserved the primary's reusable EID fitting and symmetry-map functions where the source contains older or experiment-specific alternatives.
+- Copied the source-only clustering example `DataAnalysis/clustering/test2.m` and its generated `PCA.pdf` into the primary copy, and preserved its matching PCA driver as `test_i05_178742.m` so it does not replace the primary's existing `test1.m`. Also retained the source's data-specific Fermi-edge and symmetry-map examples as separate scripts rather than replacing the primary's reusable function implementations or existing examples. The source-only untracked `DataLoader/load_ALS_h5.m` was not copied because the primary already has a tracked, safer implementation with a warning and early return for unsupported dimensions.
+
+The source checkout was not modified. No tests were run for this reconciliation.

@@ -1,5 +1,7 @@
 function DATA = load_Soleil_Cassiopee_folder(file)
-    % load FS map at Soleil Cassiopee beamline
+    %LOAD_SOLEIL_CASSIOPEE_FOLDER Assemble a Cassiopee scan from text files.
+    %   Uses the selected file's folder to locate related scans and combines
+    %   them into the folder-scan data representation.
     
     [filepath,name,ext] = fileparts(file);
 

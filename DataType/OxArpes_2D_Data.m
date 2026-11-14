@@ -13,9 +13,9 @@ classdef OxArpes_2D_Data
         y_name;
         y_unit;
 
-        x; % angle
-        y; % kinetic energy
-        value; % data
+        x; % First coordinate axis (often analyser angle).
+        y; % Second coordinate axis (often kinetic energy).
+        value; % Measured values arranged as [numel(x), numel(y)].
     end
     
     methods
