@@ -27,8 +27,9 @@ data.show();
 ```
 
 `report.loader` records the selected facility reader. Automatic HDF5/NeXus
-detection uses dataset-path probes. An explicit reader can be selected when
-needed:
+detection uses dataset-path probes; PSI ADRESS Igor files are recognized by
+the `/Matrix` dataset and its wave-scaling/note attributes. An explicit reader
+can be selected when needed:
 
 ```matlab
 data = load_arpes('/path/to/scan.ibw', ...
@@ -105,7 +106,7 @@ CI matrix. A recent MATLAB release is recommended.
 
 - Scienta SES/PEAK text, ZIP, and IBW data, including Solaris spin ZIP data
 - Diamond Light Source i05 and i09 NeXus data
-- PSI ULTRA HDF5 data
+- PSI ULTRA and ADRESS HDF5 data
 - Elettra Spectromicroscopy HDF5 data
 - Soleil Cassiopee text exports (experimental readers under `DataLoader/test`)
 - ALBA LOREA NeXus and KRX data
@@ -119,15 +120,16 @@ known reference scan before using a reader for quantitative analysis.
 ## Tests
 
 Synthetic regression tests cover core dimensional contracts and the repaired
-analysis APIs. From the repository root:
+analysis APIs. The PSI ULTRA and ADRESS readers have also been exercised against
+local beamtime examples; those raw files are not included. From the repository root:
 
 ```matlab
 addpath('tests');
 results = run_tests();
 ```
 
-Representative fixture files are still needed for end-to-end tests of every
-beamline loader.
+Representative files are still needed to expand end-to-end coverage for the
+remaining beamline loaders.
 
 ## Project status and licensing
 

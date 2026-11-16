@@ -33,7 +33,7 @@ function [data, report] = load_arpes(filePath, varargin)
             'load_Soleil_Cassiopee','load_Soleil_Cassiopee_folder', ...
             'load_scienta_zip','load_solaris_spin_zip', ...
             'load_Elettra_Spectromicroscopy','load_SSRL_BL52', ...
-            'load_PSI_ULTRA','load_ALS_h5','load_ALBA_LOREA', ...
+            'load_PSI_ULTRA','load_PSI_ADRESS','load_ALS_h5','load_ALBA_LOREA', ...
             'load_DLS_io5_nano','load_DLS_io5_HR','load_DLS_io9_kPEEM', ...
             'load_DLS_io9_HAXPES','load_scienta_IBW','load_Specs_itx', ...
             'load_ALS_Maestro_fits','load_ALBA_krx','load_ALBA_krx_S'};
@@ -128,10 +128,12 @@ function [loaderName, candidates] = detect_loader(filePath, ext)
         case '.hdf5'
             loaderName = 'load_Elettra_Spectromicroscopy';
         case '.h5'
-            if has_h5_path(filePath, '/UserSettings')
-                loaderName = 'load_SSRL_BL52';
-            elseif has_h5_path(filePath, '/Electron Analyzer/Image Data')
+            if has_h5_path(filePath, '/Electron Analyzer/Image Data')
                 loaderName = 'load_PSI_ULTRA';
+            elseif has_igor_wave_schema(filePath)
+                loaderName = 'load_PSI_ADRESS';
+            elseif has_h5_path(filePath, '/UserSettings')
+                loaderName = 'load_SSRL_BL52';
             elseif has_h5_path(filePath, '/2D_Data/Swept_Spectra15')
                 loaderName = 'load_ALS_h5';
             else
@@ -171,6 +173,18 @@ function [loaderName, candidates] = detect_loader(filePath, ext)
     if isempty(candidates)
         candidates = {loaderName};
     end
+end
+
+function tf = has_igor_wave_schema(filePath)
+%HAS_IGOR_WAVE_SCHEMA Identify ADRESS Igor HDF5 waves by dataset attributes.
+    tf = false;
+    if ~has_h5_path(filePath, '/Matrix')
+        return
+    end
+    matrixInfo = h5info(filePath, '/Matrix');
+    attributeNames = {matrixInfo.Attributes.Name};
+    requiredAttributes = {'IGORWaveScaling','IGORWaveNote','IGORWaveUnits'};
+    tf = all(ismember(requiredAttributes, attributeNames));
 end
 
 function loaderName = probe_zip_loader(filePath)
