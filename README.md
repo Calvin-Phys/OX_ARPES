@@ -135,9 +135,9 @@ remaining beamline loaders.
 
 This is research software under active development and is intended to become
 a back-end component for earlier ARPES processing tools such as `yulinARPES`.
-No repository-level software licence is currently declared; users should
-contact the maintainers before redistribution. Do not assume that the bundled
-third-party licence applies to the whole project.
+Project-owned code is licensed under the GNU General Public License version 3
+(`GPL-3.0-only`). See [LICENSE](LICENSE). Bundled third-party components retain
+their own licences and attribution files.
 
 Contact: Cheng Peng <cheng.peng@physics.ox.ac.uk>
 
