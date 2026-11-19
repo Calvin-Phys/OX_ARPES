@@ -44,6 +44,27 @@ array for multiple files):
 data = loader_UI();
 ```
 
+## Data processing app
+
+The maintained `OxArpes_DataProcess.m` app crops, smooths, differentiates, normalises,
+median-filters, and block-averages scalar OX 2-D/3-D workspace objects:
+
+```matlab
+addpath(fullfile(root,'GUI'));
+app = OxArpes_DataProcess;
+```
+
+Results receive new workspace names; existing outputs are retained. Use
+`ox_data_process(data,action,options)` for processing without workspace effects,
+or `ox_data_process_workspace(name,action,options)` for named workspace outputs.
+`ox_data_process_agent` provides public open/read/list/select/refresh/resetcrop/
+preview/process actions for the whole panel. Block reduction uses the existing
+`block_reduce` class method with X/Y/Z sample factors and the `_rd` suffix.
+See the [operation skill](AI_skills/ox-arpes-data-process/SKILL.md) for options,
+axis conventions, and verification. The previous App Designer file is retained
+as `GUI/OxArpes_DataProcess_legacy.mlapp`; its contents are unchanged. The
+unsuffixed entry point resolves to the maintained `.m` implementation.
+
 ## Data model
 
 The base containers are:

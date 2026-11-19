@@ -1,3 +1,0 @@
-# Keep local documentation and regression tests out of version control.
-/doc/
-/tests/
