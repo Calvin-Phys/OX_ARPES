@@ -18,6 +18,8 @@
 %
 % Selected analysis
 %   fit_fermi_edge_ox                    - Fit a Fermi edge.
+%   fdd_fit_edc                          - Toolbox-free Fermi-edge fit (FDD).
+%   fdd_correct_data                     - E_F shift / Fermi-Dirac division on a copy.
 %   ox_calibrate_fermi_kz_scan           - Estimate and correct EF drift.
 %   ox_energy_intensity_distribution     - Estimate EID backgrounds.
 %   ox_remove_background                 - Subtract an EID background.
@@ -25,5 +27,9 @@
 %   PCA_cluster                          - PCA plus k-means clustering.
 %   custom_fcm                           - Fuzzy c-means clustering.
 %   h_cluster                            - Hierarchical clustering.
+%
+% Apps
+%   OxArpes_DataProcess - Crop/smooth/normalise/reduce workspace data.
+%   FDD_fit_app         - Fermi-edge fitting and Fermi-Dirac correction.
 %
 % Run synthetic regression tests with tests/run_tests.

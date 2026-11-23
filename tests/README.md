@@ -28,6 +28,21 @@ Use an isolated MATLAB verification process when protecting an active user's
 workspace and app instances. Other suites cover core data, analysis/loading,
 and synthetic PSI ADRESS format/axis contracts.
 
+For FDD Fermi-edge fitting changes, run the two FDD suites:
+
+```matlab
+results = runtests({fullfile(root, 'tests', 'TestFDDCore.m'), ...
+                    fullfile(root, 'tests', 'TestFDDGui.m')});
+assertSuccess(results);
+```
+
+`TestFDDCore` checks the model against an independent `integral` oracle (via
+`fdd_synthetic`), parameter recovery, error identifiers and corrections of struct and
+`OxA_CUT`/`OxA_MAP` copies. `TestFDDGui` builds a hidden `FDD_fit_app` and drives it
+through its public methods with `fddtest_*` base-workspace fixtures that it removes
+afterwards. `fdd_recovery_table` prints the fitted-vs-true table quoted in
+`doc/FDD_improvement_log.md`.
+
 Report the executed suite, MATLAB release, passed/failed/incomplete counts, and
 warnings. An old review log is not evidence that the current suite passed.
 Synthetic checks do not establish beamline calibration or all-release GUI

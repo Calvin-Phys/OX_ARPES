@@ -65,6 +65,27 @@ axis conventions, and verification. The previous App Designer file is retained
 as `GUI/OxArpes_DataProcess_legacy.mlapp`; its contents are unchanged. The
 unsuffixed entry point resolves to the maintained `.m` implementation.
 
+## Fermi-edge fitting app (FDD)
+
+`FDD_fit_app` fits a gold/sample Fermi edge for E_F, Gaussian resolution (FWHM) and
+temperature, then writes an E_F-shifted, Fermi-Dirac-divided or -multiplied *copy* of a cut
+or map. It needs base MATLAB only and lives in `GUI/`:
+
+```matlab
+addpath(fullfile(root,'GUI'));
+app = FDD_fit_app;                                    % Data -> Fit -> Apply
+[E, I] = fdd_extract_edc(goldCut, 'XRange', [-10 10]);
+R = fdd_fit_edc(E, I, 'Model', 'rcfd_lin_bg_T', 'Temperature', 10);  % hold T at the measured value
+goldFD  = fdd_correct_data(goldCut, R.params, 'Renormalise', true);  % E-EF, divided by FD
+shifted = fdd_correct_data(sampleCut, R.params);                    % same EF for a sample scan
+```
+
+Fits report 1-sigma errors, chi-squared, residuals and warnings; fitting temperature and
+resolution together is flagged because one edge cannot separate them. See the
+[user guide](doc/FDD_user_guide.md), the [review](doc/FDD_review.md) of the original
+standalone `FDD_new` app, the [improvement log](doc/FDD_improvement_log.md) and the
+[operation skill](AI_skills/ox-arpes-fdd-fit/SKILL.md).
+
 ## Data model
 
 The base containers are:
@@ -115,7 +136,7 @@ end
 ```
 
 Clustering functions under `DataAnalysis/clustering` require Statistics and
-Machine Learning Toolbox. `fit_fermi_edge_ox` requires Curve Fitting Toolbox;
+Machine Learning Toolbox. `fit_fermi_edge_ox` requires Curve Fitting Toolbox (the FDD tools do not);
 median filtering requires Signal Processing Toolbox. Some viewers and image
 operations may require Image Processing Toolbox. Igor Binary Wave support is
 provided by the bundled third-party `Igor2Matlab` code and its own licence.
@@ -148,6 +169,8 @@ local beamtime examples; those raw files are not included. From the repository r
 addpath('tests');
 results = run_tests();
 ```
+
+`tests/TestFDDCore.m` and `tests/TestFDDGui.m` cover the FDD Fermi-edge fitter and app.
 
 Representative files are still needed to expand end-to-end coverage for the
 remaining beamline loaders.
