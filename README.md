@@ -46,6 +46,20 @@ data = loader_UI();
 
 ## NeXus NXmpes exchange
 
+For a simple export window, add `GUI` to your MATLAB path and run:
+
+```matlab
+addpath(fullfile(root,'GUI'));
+export_nxmpes_UI;
+```
+
+The window lists all base-workspace variables. Tick the OX datasets to save,
+choose the output file with Browse (or enter its path), then click Save NXmpes.
+Refresh list updates the variables without clearing existing selections.
+The compact 400 x 400 window keeps instructions and status below the title
+to leave more room for the variable list. See the
+[implementation and verification log](doc/NXmpes_GUI_worklog.md).
+
 Export scalar OX 1D--4D objects, or a structure of named objects, and import
 them through the normal loader:
 
@@ -54,6 +68,11 @@ exportReport = save_nxmpes('scan.nxs',data,'SignalUnits','counts');
 [restored,report] = load_arpes('scan.nxs');
 selected = load_arpes('session.nxs','Entry','entry_1');
 ```
+
+Use `loader_UI('session.nxs')` to place each NeXus dataset directly in the
+base workspace under its original name. Names are made valid and unique so
+existing variables are preserved. No enclosing structure is assigned.
+Use `'AssignToBase',false` for a return-only `loader_UI` call.
 
 Arrays, coordinates, labels and portable `info` metadata are preserved without
 regridding. Existing files require explicit `'Overwrite',true`. NXmpes and

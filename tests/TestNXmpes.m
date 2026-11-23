@@ -55,6 +55,60 @@ classdef TestNXmpes < matlab.unittest.TestCase
             selected = loader_UI(file,'Entry','scan','AssignToBase',false);
             testCase.verifyEqual(selected,inputs.scan);
         end
+        function nexusUiAssignsIndividualObjectsWithoutOverwriting(testCase)
+            file = testCase.newFile();
+            [~,prefix] = fileparts(tempname);
+            variable = matlab.lang.makeValidName([prefix '-scan']);
+            inputs = struct('first',OxA_CUT([0 1],[4 5],magic(2)), ...
+                'second',OxA_KZ([40 50],[-1 0 1],[-0.1 0],reshape(1:12,[2 3 2])));
+            inputs.first.name = [prefix '-scan'];
+            inputs.second.name = [prefix '_scan'];
+            save_nxmpes(file,inputs);
+            assignin('base',variable,42);
+            cleanup = onCleanup(@() clear_base_prefix(prefix));
+            [loaded,report] = loader_UI(file);
+            names = report.workspace_variables;
+            testCase.verifyNumElements(names,2);
+            testCase.verifyEqual(numel(unique(names)),2);
+            testCase.verifyFalse(any(strcmp(names,variable)));
+            testCase.verifyTrue(all(cellfun(@isvarname,names)));
+            testCase.verifyEqual(evalin('base',variable),42);
+            testCase.verifyEqual(evalin('base',names{1}),inputs.first);
+            testCase.verifyEqual(evalin('base',names{2}),inputs.second);
+            testCase.verifyEqual(loaded,inputs);
+            [~,containerName] = fileparts(file);
+            testCase.verifyFalse(ismember(matlab.lang.makeValidName(containerName),evalin('base','who')));
+        end
+        function nexusUiSelectedEntryAndRepeatedLoadsGetOwnVariables(testCase)
+            file = testCase.newFile();
+            [~,prefix] = fileparts(tempname);
+            data = OxA_CUT([0 1],[4 5],magic(2));
+            data.name = prefix;
+            save_nxmpes(file,struct('selected',data));
+            cleanup = onCleanup(@() clear_base_prefix(prefix));
+            loader_UI(file,'Entry','selected');
+            firstNames = evalin('base','who');
+            firstNames = firstNames(startsWith(firstNames,prefix));
+            [~,second] = loader_UI(file,'Entry','selected','AssignToBase',true);
+            testCase.verifyNumElements(firstNames,1);
+            testCase.verifyNumElements(second.workspace_variables,1);
+            testCase.verifyFalse(any(strcmp(firstNames,second.workspace_variables{1})));
+            testCase.verifyEqual(evalin('base',firstNames{1}),data);
+            testCase.verifyEqual(evalin('base',second.workspace_variables{1}),data);
+        end
+        function explicitReturnOnlyNexusCallLeavesWorkspaceUntouched(testCase)
+            file = testCase.newFile();
+            [~,prefix] = fileparts(tempname);
+            data = OxA_CUT([0 1],[4 5],magic(2));
+            data.name = prefix;
+            save_nxmpes(file,struct('first',data,'second',data));
+            before = evalin('base','who');
+            [loaded,report] = loader_UI(file,'AssignToBase',false);
+            testCase.verifyEqual(loaded.first,data);
+            testCase.verifyEqual(loaded.second,data);
+            testCase.verifyEmpty(report.workspace_variables);
+            testCase.verifyEqual(evalin('base','who'),before);
+        end
         function standardFileUsesCOrderAndPermutesEnergyFirst(testCase)
             file = testCase.newFile();
             testCase.externalCut(file,'kinetic');
@@ -221,4 +275,13 @@ end
 
 function delete_if_present(file)
     if isfile(file), delete(file); end
+end
+
+function clear_base_prefix(prefix)
+    names = evalin('base','who');
+    names = names(startsWith(names,prefix));
+    if ~isempty(names)
+        % Names come only from WHO and a synthetic prefix created by this test.
+        evalin('base',['clear ' strjoin(names(:).',' ')]);
+    end
 end

@@ -9,6 +9,19 @@ and [versioned NXDL source](https://github.com/nexusformat/definitions/blob/v202
 
 ## Basic use
 
+To export interactively, add the `GUI` folder to the path and run
+`export_nxmpes_UI`. The window shows every base-workspace variable and marks
+the scalar OX datasets that can be exported. Tick one or more datasets,
+choose an output path and click **Save NXmpes**. Each selected variable
+becomes an entry named after its workspace variable. **Refresh list** keeps
+existing selections that are still available. Source variables are not
+modified. The default window is a compact, resizable 400 x 400 pixels, with
+instructions, save results and errors sharing the area below the title to
+leave more height for the variable list. Replacing an existing output
+requires confirmation. In yulinARPES, the same window is available from
+**Load → Export NXmpes...** in browser v5 and
+**Loader → Export NXmpes...** in legacy v32.
+
 Add `DataType` and `DataLoader` to the MATLAB path as in the README:
 
 ```matlab
@@ -28,6 +41,23 @@ exportReport = save_nxmpes('session.nxs',scans,'SignalUnits','counts');
 [loaded,report] = load_arpes('session.nxs');
 oneMap = load_arpes('session.nxs','Entry','map');
 ```
+
+The interactive loader assigns each NeXus dataset directly to the base
+workspace, including when called with an explicit path:
+
+```matlab
+[loaded,report] = loader_UI('session.nxs');
+disp(report.workspace_variables);
+```
+
+Each workspace variable contains one OX data object. Names use the original
+dataset name, falling back to the entry name or filename when unnamed, and
+are made valid and unique. Existing variables are preserved; repeated loads
+receive numeric suffixes. No enclosing file-level structure is assigned.
+Explicit return values still use the entry-keyed structure for scripts.
+`loader_UI(file,'AssignToBase',false)` disables workspace assignment.
+The lower-level `load_arpes` and `load_nxmpes` functions return data without
+assigning workspace variables.
 
 `Entry` and `DataGroup` also work in scripted `loader_UI` calls. For a
 particular NXdata group, use an absolute path inside the selected entry:
@@ -168,12 +198,15 @@ duplicating bulk raw signals.
 
 ## Checks
 
+The dated [workspace and export GUI worklog](NXmpes_GUI_worklog.md) records
+the final compact layout, menu integration, executed checks and limitations.
+
 Run `runtests(fullfile(root,'tests','TestNXmpes.m'))` for synthetic coverage
 of dimensions, file-order counts, metadata, energy conventions, entry
 selection, compression and safe publication. Measured fixture acceptance
 is a separate local check; reusable tests contain no private scan IDs.
 
-Acceptance run: **23 November 2026**, isolated MATLAB **R2024a,
+Initial exchange acceptance run: **23 November 2026**, isolated MATLAB **R2024a,
 24.1.0.2537033**. The NXmpes suite passed **12/12**, with no failed or
 incomplete cases. The full OX suite passed **50/51**; the sole failed and
 incomplete case is the already documented
@@ -187,3 +220,22 @@ counts, coordinates and imported metadata. Five unsupported optional flags
 per entry were reported as source references, as described above. These
 checks establish software preservation, not experimental calibration or
 full NXDL conformance.
+
+The workspace-assignment update was checked separately in isolated R2024a:
+all **15 NXmpes tests and 5 PSI loader tests passed**. Coverage includes
+individual base-workspace objects, original-name sanitization, name
+collisions, repeated loads, selected entries, calls without return values,
+and the explicit return-only option. Loading the supplied five-entry file
+created five individual OX workspace objects; loading it again preserved
+those objects and created five separately named variables. The user's live
+MATLAB workspace was not used for these checks.
+
+The export window was verified in isolated R2024a with **3 GUI tests and
+15 NXmpes tests passing**. Actual Save callbacks round-tripped only the
+checked variables; refresh, unsupported selections, stale variables and
+failed-write recovery were checked. Launch without a return value and
+exports through that window also passed. The initial 800 x 560 and 620 x 440
+renders were superseded by the final 400 x 400 layout and its 360 x 360
+resize check. The final GUI suite passed all 3 tests after consolidating the
+instructions and enlarging the variable list. Code Analyzer reported no
+notices on the GUI or its test file.

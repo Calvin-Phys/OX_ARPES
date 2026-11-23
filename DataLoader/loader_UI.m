@@ -4,12 +4,13 @@ function [loaded, reports] = loader_UI(varargin)
 %   results to the base workspace for interactive compatibility.
 %
 %   DATA = LOADER_UI(PATHS) loads one path or a cell/string array of paths.
-%   Script calls return data and do not show a waitbar or assign to the base
-%   workspace by default.
+%   Script calls do not show a waitbar. NeXus calls also assign each dataset
+%   directly to the base workspace by default; other scripted formats return
+%   data only. Use 'AssignToBase',false for a return-only NeXus call.
 %
 %   Name-value options:
 %     'Progress'      'none' (default for scripts), 'text', or 'waitbar'
-%     'AssignToBase'  true/false (defaults to true only for picker use)
+%     'AssignToBase'  true/false (default true for picker use or NeXus files)
 %     'Format'        Loader name or 'auto', passed to load_arpes
 %     'Validate'      Validate returned OX data objects (default true)
 %     'Entry'         NXmpes entry name or absolute path (default all)
@@ -18,6 +19,9 @@ function [loaded, reports] = loader_UI(varargin)
 %   For multiple files, LOADED and REPORTS are cell arrays in input order.
 %   MAT files are returned as structures; when AssignToBase is true, each
 %   variable in the MAT file is assigned individually.
+%   NeXus entries are always assigned individually when assignment is enabled.
+%   Original dataset names are made valid and unique, preserving existing
+%   workspace variables. For NeXus, REPORTS.workspace_variables lists names.
 
     guiStart = isempty(varargin);
     if guiStart
@@ -49,8 +53,8 @@ function [loaded, reports] = loader_UI(varargin)
     parser = inputParser;
     addParameter(parser, 'Progress', default_progress(guiStart), ...
         @(value) ischar(value) || (isstring(value) && isscalar(value)));
-    addParameter(parser, 'AssignToBase', guiStart, ...
-        @(value) islogical(value) && isscalar(value));
+    addParameter(parser, 'AssignToBase', [], ...
+        @(value) isempty(value) || (islogical(value) && isscalar(value)));
     addParameter(parser, 'Format', 'auto', ...
         @(value) ischar(value) || (isstring(value) && isscalar(value)));
     addParameter(parser, 'Validate', true, ...
@@ -97,9 +101,16 @@ function [loaded, reports] = loader_UI(varargin)
             'Format', parser.Results.Format, 'Validate', parser.Results.Validate, ...
             'Entry', parser.Results.Entry, 'DataGroup', parser.Results.DataGroup);
         loadedItems{iFile} = data;
+        isNexus = ismember(lower(extension), {'.nxs','.nx5','.nexus'}) || ...
+            strcmp(reports{iFile}.loader, 'load_nxmpes');
+        assignToBase = parser.Results.AssignToBase;
+        if isempty(assignToBase), assignToBase = guiStart || isNexus; end
+        reports{iFile}.workspace_variables = {};
 
-        if parser.Results.AssignToBase && ~isempty(data)
-            if strcmpi(extension, '.mat') && isstruct(data)
+        if assignToBase && ~isempty(data)
+            if isNexus
+                reports{iFile}.workspace_variables = assign_nexus_datasets(data, baseName);
+            elseif strcmpi(extension, '.mat') && isstruct(data)
                 variableNames = fieldnames(data);
                 for iName = 1:numel(variableNames)
                     assignin('base', variableNames{iName}, data.(variableNames{iName}));
@@ -120,6 +131,39 @@ function [loaded, reports] = loader_UI(varargin)
     else
         loaded = loadedItems;
     end
+    if nargout == 0
+        % Workspace-only calls should not also return a container as ANS.
+        clear loaded
+    end
+end
+
+function names = assign_nexus_datasets(data, fallbackName)
+%ASSIGN_NEXUS_DATASETS Publish individual objects without a container variable.
+    if isstruct(data)
+        items = struct2cell(data);
+        names = fieldnames(data);
+    else
+        items = {data};
+        names = {fallbackName};
+    end
+    for i = 1:numel(items)
+        item = items{i};
+        if ~isobject(item) || ~isscalar(item) || ~isprop(item, 'value')
+            error('OxArpes:InvalidLoaderOutput', ...
+                'Each NeXus entry must contain a scalar OX data object.');
+        end
+        if isprop(item, 'name') && ...
+                (ischar(item.name) || (isstring(item.name) && isscalar(item.name))) && ...
+                ~ismissing(string(item.name)) && strlength(strtrim(string(item.name))) > 0
+            names{i} = char(item.name);
+        end
+    end
+    names = matlab.lang.makeValidName(names);
+    names = matlab.lang.makeUniqueStrings(names, evalin('base', 'who'), namelengthmax);
+    for i = 1:numel(items)
+        assignin('base', names{i}, items{i});
+    end
+    names = names(:).';
 end
 
 function mode = default_progress(guiStart)

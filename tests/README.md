@@ -30,10 +30,25 @@ and synthetic PSI ADRESS format/axis contracts.
 
 `TestNXmpes.m` covers NXmpes import/export, physical HDF5 dimension order,
 1D--4D classes and singleton dimensions, typed metadata, energy conventions,
-multi-entry dispatch and protection against incomplete writes. It generates
+multi-entry dispatch, individual workspace assignment, duplicate-name
+protection and protection against incomplete writes. It generates
 independent synthetic HDF5 layouts as well as round-trip files. The supplied
 Python example and measured NeXus file are optional local acceptance inputs;
 the reusable suite does not depend on them. See [the NXmpes guide](../doc/NXmpes.md).
+
+`TestNXmpesExport.m` checks the export window's complete workspace list,
+selection/refresh behavior, actual Save callback, file round-trip, source
+preservation and errors after workspace changes or unsupported metadata.
+
+Run that focused GUI suite in an isolated MATLAB process with:
+
+```matlab
+results = runtests(fullfile(root, 'tests', 'TestNXmpesExport.m'));
+assertSuccess(results);
+```
+
+See the [NXmpes worklog](../doc/NXmpes_GUI_worklog.md) for dated final-layout
+checks, menu integration and the distinction from historical full-suite results.
 
 Report the executed suite, MATLAB release, passed/failed/incomplete counts, and
 warnings. An old review log is not evidence that the current suite passed.
