@@ -106,10 +106,10 @@ unsuffixed entry point resolves to the maintained `.m` implementation.
 
 `FDD_fit_app` fits a gold/sample Fermi edge for E_F, Gaussian resolution (FWHM) and
 temperature, then writes an E_F-shifted, Fermi-Dirac-divided or -multiplied *copy* of a cut
-or map. It needs base MATLAB only and lives in `GUI/`:
+or map. It needs base MATLAB only; the app and its `fdd_*` fitting functions live in `GUI/FDD/`:
 
 ```matlab
-addpath(fullfile(root,'GUI'));
+addpath(fullfile(root,'GUI','FDD'));
 app = FDD_fit_app;                                    % Data -> Fit -> Apply
 [E, I] = fdd_extract_edc(goldCut, 'XRange', [-10 10]);
 R = fdd_fit_edc(E, I, 'Model', 'rcfd_lin_bg_T', 'Temperature', 10);  % hold T at the measured value
@@ -118,7 +118,9 @@ shifted = fdd_correct_data(sampleCut, R.params);                    % same EF fo
 ```
 
 Fits report 1-sigma errors, chi-squared, residuals and warnings; fitting temperature and
-resolution together is flagged because one edge cannot separate them. See the
+resolution together is flagged because one edge cannot separate them. When the selected data
+carry a finite `info.temperature` (K), the app uses it as the held fit temperature; a status
+lamp next to the message bar shows Idle, Fitting…, Done or Failed. See the
 [user guide](doc/FDD_user_guide.md), the [review](doc/FDD_review.md) of the original
 standalone `FDD_new` app, the [improvement log](doc/FDD_improvement_log.md) and the
 [operation skill](AI_skills/ox-arpes-fdd-fit/SKILL.md).

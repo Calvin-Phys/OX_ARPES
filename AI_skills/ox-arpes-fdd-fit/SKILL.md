@@ -10,11 +10,11 @@ selected for the current project (runtime discovery or the supplied location, no
 personal directory layout), then:
 
 ```matlab
-addpath(fullfile(root,'GUI'), fullfile(root,'DataType'));
+addpath(fullfile(root,'GUI','FDD'), fullfile(root,'DataType'));
 ```
 
 Base MATLAB only (no toolboxes). `FDD_fit_app` / `fdd_*` live in
-`GUI/`. Use the live MATLAB session that holds the user's data
+`GUI/FDD/`. Use the live MATLAB session that holds the user's data
 and verify the expected workspace names first. Do not clear classes or the workspace
 while another agent uses the shared session.
 
@@ -22,7 +22,8 @@ while another agent uses the shared session.
    (`value(x, y)`, energy along y) or add `'YRange'` for a map (`value(x, y, z)`,
    energy along z). Axes may be ascending or descending; NaN samples are ignored.
 2. **Fit.** Prefer `R = fdd_fit_edc(E, I, 'Model', 'rcfd_lin_bg_T', 'Temperature', T_K)`
-   with the measured sample temperature. Use `'Window', [Emin Emax]` to restrict the
+   with the measured sample temperature; `fdd_info_temperature(data)` returns
+   `data.info.temperature` when it is finite and positive (otherwise `[]`, so ask). Use `'Window', [Emin Emax]` to restrict the
    range (same units as E; kinetic energy is fine). Read `R.params`, `R.stderr`,
    `R.chi2red`, `R.converged` and **always report `R.warnings`**.
    A free-T model (`rcfd_lin_bg`, legacy Mod 5) cannot separate T from resolution
@@ -36,7 +37,10 @@ while another agent uses the shared session.
    (`selectData`, `setWindows`, `extractEDC`, `setModel`, `setStart`, `fit`,
    `applyCorrection(mode, outName, 'Overwrite', false)`, `getState`) let an agent
    operate it without clicking. `applyCorrection` refuses to overwrite an existing
-   variable unless `'Overwrite', true`.
+   variable unless `'Overwrite', true`. `selectData` copies a finite
+   `info.temperature` into the Temperature start value (held by the default model);
+   `getState()` reports it in `temperatureSource` and the fit state in `fitStatus`
+   (`Idle`, `Fitting…`, `Done`, `Failed`).
 
 Units: eV, K, Resolution = Gaussian FWHM in eV, Slope in intensity/eV.
 Verification: compare `R.params.EF` with the edge midpoint on the plot, check

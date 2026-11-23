@@ -6,7 +6,7 @@ end
 function setupOnce(tc)
 here = fileparts(mfilename('fullpath'));
 root = fileparts(here);
-tc.TestData.oldPath = addpath(fullfile(root, 'GUI'), fullfile(root, 'DataType'), here);
+tc.TestData.oldPath = addpath(fullfile(root, 'GUI', 'FDD'), fullfile(root, 'DataType'), here);
 end
 
 function teardownOnce(tc)

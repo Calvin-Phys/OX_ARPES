@@ -6,7 +6,10 @@ classdef FDD_fit_app < handle
 %
 %   Workflow (left to right):
 %     1. Data     choose a cut/map; set the angle (and map y) window and the
-%                 energy window, or drag a rectangle on the preview.
+%                 energy window, or drag a rectangle on the preview. If the
+%                 data carry a finite info.temperature (K), it becomes the
+%                 Temperature start value, which the default held-T model
+%                 uses as the fixed temperature, and the Multiply-by-FD T.
 %     2. Fit      choose a model, edit start values / Fix boxes, set the fit
 %                 window, press Fit. Fitted values, 1-sigma errors and fit
 %                 quality appear in the table and summary.
@@ -26,7 +29,10 @@ classdef FDD_fit_app < handle
 %     name = app.applyCorrection(mode, outName, 'Overwrite', tf)
 %                                           mode 'offset' | 'renormalise'
 %     name = app.multiplyFD(T, outName, 'Overwrite', tf)
-%     s = app.getState()                    read-only snapshot (no reset)
+%     s = app.getState()                    read-only snapshot (no reset);
+%                                           s.fitStatus is 'Idle' | 'Fitting…' |
+%                                           'Done' | 'Failed', s.temperatureSource
+%                                           is 'info.temperature' or ''
 %     app.exportFigure(file)                300 dpi PNG of the whole window
 %   Base-workspace variables are never overwritten unless 'Overwrite' is
 %   true (API) or the user confirms (GUI). Source variables are not changed.
@@ -46,6 +52,8 @@ classdef FDD_fit_app < handle
     properties (Access = private)
         DragStart = []
         ROIRect = gobjects(0)
+        FitState = 'Idle'
+        TemperatureSource = ''
     end
 
     properties (Constant)
@@ -54,6 +62,9 @@ classdef FDD_fit_app < handle
         Colors = struct('title', [0.10 0.20 0.45], 'data', [0.15 0.15 0.15], ...
             'window', [0.00 0.45 0.74], 'fit', [0.85 0.33 0.10], 'ef', [0.47 0.67 0.19], ...
             'renorm', [0.49 0.18 0.56])
+        % Fit-status lamp: state name -> lamp colour.
+        StatusStates = {'Idle', 'Fitting…', 'Done', 'Failed'}
+        StatusColors = [0.65 0.65 0.65; 1.00 0.70 0.10; 0.20 0.70 0.25; 0.85 0.15 0.15]
     end
 
     methods
@@ -130,6 +141,7 @@ classdef FDD_fit_app < handle
             app.clearFit();
             app.drawPreview();
             app.extractEDC();
+            app.applyInfoTemperature(data);
         end
 
         function setWindows(app, varargin)
@@ -201,39 +213,22 @@ classdef FDD_fit_app < handle
                 error('FDD:NoEDC', 'Extract an EDC before fitting.');
             end
             h = app.Handles;
-            d = h.Table.Data;
-            initial = struct(); fixed = struct(); freeSet = struct();
-            m = fdd_models(h.Model.Value);
-            for r = 1:6
-                n = app.ParamNames{r};
-                % Start values are used for free parameters, user-fixed
-                % parameters and T; other held parameters stay at 0.
-                hasStart = ~isempty(d{r, 3}) && isfinite(d{r, 3});
-                if hasStart && (m.free(r) || d{r, 4} || r == 4)
-                    initial.(n) = d{r, 3};
-                end
-                if d{r, 4}
-                    if ~isfield(initial, n)
-                        error('FDD:InvalidParameter', '%s is fixed but has no start value.', n);
-                    end
-                    fixed.(n) = initial.(n);
-                elseif ~m.free(r)
-                    freeSet.(n) = false;
-                end
+            % Fitting is synchronous: show the busy state and disable the
+            % button before the solver runs; restore them however it ends.
+            app.setFitState('Fitting…');
+            app.status('Fitting the Fermi edge…');
+            h.FitButton.Enable = 'off';
+            app.UIFigure.Pointer = 'watch';
+            drawnow;
+            restore = onCleanup(@() app.endBusy());
+            try
+                R = app.runFit();
+            catch err
+                app.setFitState('Failed');
+                rethrow(err);
             end
-            T = [];
-            if isfield(initial, 'Temperature') && initial.Temperature > 0, T = initial.Temperature; end
-            R = fdd_fit_edc(app.EDC.E, app.EDC.I, 'Model', m.key, ...
-                'Window', [h.FitEMin.Value h.FitEMax.Value], 'Temperature', T, ...
-                'Initial', initial, 'Fixed', fixed, 'Free', freeSet, 'Weights', h.Weights.Value);
-            app.Result = R;
-            for r = 1:6
-                n = app.ParamNames{r};
-                h.Table.Data{r, 5} = R.params.(n);
-                h.Table.Data{r, 6} = R.stderr.(n);
-            end
-            app.drawEDC();
-            app.showSummary();
+            app.setFitState('Done');
+            delete(restore);
         end
 
         function name = applyCorrection(app, mode, outName, varargin)
@@ -277,6 +272,8 @@ classdef FDD_fit_app < handle
             s.table = cell2table(h.Table.Data, 'VariableNames', {'Parameter','Unit','Start','Fixed','Fitted','StdErr'});
             s.result = app.Result;
             s.nEDC = numel(app.EDC.E);
+            s.fitStatus = app.FitState;
+            s.temperatureSource = app.TemperatureSource;
         end
 
         function exportFigure(app, file)
@@ -286,25 +283,62 @@ classdef FDD_fit_app < handle
     end
 
     methods (Access = private)
+        function R = runFit(app)
+            h = app.Handles;
+            d = h.Table.Data;
+            initial = struct(); fixed = struct(); freeSet = struct();
+            m = fdd_models(h.Model.Value);
+            for r = 1:6
+                n = app.ParamNames{r};
+                % Start values are used for free parameters, user-fixed
+                % parameters and T; other held parameters stay at 0.
+                hasStart = ~isempty(d{r, 3}) && isfinite(d{r, 3});
+                if hasStart && (m.free(r) || d{r, 4} || r == 4)
+                    initial.(n) = d{r, 3};
+                end
+                if d{r, 4}
+                    if ~isfield(initial, n)
+                        error('FDD:InvalidParameter', '%s is fixed but has no start value.', n);
+                    end
+                    fixed.(n) = initial.(n);
+                elseif ~m.free(r)
+                    freeSet.(n) = false;
+                end
+            end
+            T = [];
+            if isfield(initial, 'Temperature') && initial.Temperature > 0, T = initial.Temperature; end
+            R = fdd_fit_edc(app.EDC.E, app.EDC.I, 'Model', m.key, ...
+                'Window', [h.FitEMin.Value h.FitEMax.Value], 'Temperature', T, ...
+                'Initial', initial, 'Fixed', fixed, 'Free', freeSet, 'Weights', h.Weights.Value);
+            app.Result = R;
+            for r = 1:6
+                n = app.ParamNames{r};
+                h.Table.Data{r, 5} = R.params.(n);
+                h.Table.Data{r, 6} = R.stderr.(n);
+            end
+            app.drawEDC();
+            app.showSummary();
+        end
+
         function build(app, vis)
             C = app.Colors;
             f = uifigure('Visible', 'off', 'Name', 'Fermi Edge Fitting (upgraded)', ...
-                'Position', [60 60 1360 780], 'Tag', 'FDD_fit_app');
+                'Position', [60 60 1088 624], 'Tag', 'FDD_fit_app');   % 80 % of the former 1360x780
             app.UIFigure = f;
             f.CloseRequestFcn = @(~, ~) delete(app);
-            g = uigridlayout(f, [2 3], 'ColumnWidth', {330, '1x', 410}, 'RowHeight', {'1x', 24}, ...
-                'Padding', [10 6 10 6], 'ColumnSpacing', 10, 'RowSpacing', 4);
+            g = uigridlayout(f, [2 3], 'ColumnWidth', {272, '1x', 336}, 'RowHeight', {'1x', 22}, ...
+                'Padding', [8 4 8 4], 'ColumnSpacing', 8, 'RowSpacing', 3);
 
             % ---- column 1: data ----
             p1 = uipanel(g, 'Title', '1. Data and EDC window', 'FontWeight', 'bold', 'ForegroundColor', C.title);
             p1.Layout.Row = 1; p1.Layout.Column = 1;
-            g1 = uigridlayout(p1, [10 4], 'RowHeight', {130, 24, 22, '1x', 22, 22, 22, 22, 26, 22}, ...
-                'ColumnWidth', {70, '1x', '1x', 24}, 'Padding', [8 8 8 8], 'RowSpacing', 5);
+            g1 = uigridlayout(p1, [10 4], 'RowHeight', {92, 22, 18, '1x', 22, 22, 22, 22, 24, 0}, ...
+                'ColumnWidth', {58, '1x', '1x', 4}, 'Padding', [6 6 6 6], 'RowSpacing', 4);
             h.List = uilistbox(g1, 'Tag', 'DataList', 'ValueChangedFcn', @(~, ~) app.guard(@() app.selectData(app.Handles.List.Value)));
             h.List.Layout.Row = 1; h.List.Layout.Column = [1 4];
             h.Refresh = uibutton(g1, 'Text', 'Refresh list', 'Tag', 'Refresh', 'ButtonPushedFcn', @(~, ~) app.guard(@() app.refreshList()));
             h.Refresh.Layout.Row = 2; h.Refresh.Layout.Column = [1 2];
-            h.PlotSlices = uibutton(g1, 'Text', 'Open in PlotSlices', 'Tag', 'OpenPlotSlices', ...
+            h.PlotSlices = uibutton(g1, 'Text', 'PlotSlices…', 'Tag', 'OpenPlotSlices', 'Tooltip', 'Open in PlotSlices (yulinARPES)', ...
                 'ButtonPushedFcn', @(~, ~) app.guard(@() app.openPlotSlices()));
             h.PlotSlices.Layout.Row = 2; h.PlotSlices.Layout.Column = [3 4];
             h.DataInfo = uilabel(g1, 'Text', 'No data selected', 'FontColor', [0.35 0.35 0.35]);
@@ -315,11 +349,11 @@ classdef FDD_fit_app < handle
             h.Preview = uiaxes(gpv, 'Tag', 'PreviewAxes');
             title(h.Preview, 'Preview (drag to set window)', 'FontWeight', 'normal');
             xlabel(h.Preview, 'x (angle / k)'); ylabel(h.Preview, 'Energy (eV)');
-            [h.XMin, h.XMax] = app.rangeRow(g1, 5, 'x range', 'XMin', 'XMax');
+            [h.XMin, h.XMax] = app.rangeRow(g1, 5, 'x', 'XMin', 'XMax');
             [h.YMin, h.YMax] = app.rangeRow(g1, 6, 'y (maps)', 'YMin', 'YMax');
-            [h.EMin, h.EMax] = app.rangeRow(g1, 7, 'E range (eV)', 'EMin', 'EMax');
+            [h.EMin, h.EMax] = app.rangeRow(g1, 7, 'E (eV)', 'EMin', 'EMax');
             h.YMin.Enable = 'off'; h.YMax.Enable = 'off';
-            lab = uilabel(g1, 'Text', 'EDC y scale'); lab.Layout.Row = 8; lab.Layout.Column = 1;
+            lab = uilabel(g1, 'Text', 'y scale'); lab.Layout.Row = 8; lab.Layout.Column = 1;
             h.YScale = uidropdown(g1, 'Items', {'Linear', 'Log'}, 'ItemsData', {'linear', 'log'}, 'Tag', 'YScale', ...
                 'ValueChangedFcn', @(~, ~) app.drawEDC());
             h.YScale.Layout.Row = 8; h.YScale.Layout.Column = [2 3];
@@ -328,7 +362,7 @@ classdef FDD_fit_app < handle
             h.Extract.Layout.Row = 9; h.Extract.Layout.Column = [1 4];
 
             % ---- column 2: plots ----
-            g2 = uigridlayout(g, [2 1], 'RowHeight', {'3x', '1x'}, 'Padding', [0 0 0 0], 'RowSpacing', 4);
+            g2 = uigridlayout(g, [2 1], 'RowHeight', {'3x', '1x'}, 'Padding', [0 0 0 0], 'RowSpacing', 3);
             g2.Layout.Row = 1; g2.Layout.Column = 2;
             h.Axes = uiaxes(g2, 'Tag', 'EDCAxes');
             title(h.Axes, 'EDC and fit'); xlabel(h.Axes, 'Energy (eV)'); ylabel(h.Axes, 'Mean intensity (counts)');
@@ -338,11 +372,11 @@ classdef FDD_fit_app < handle
             xlabel(h.ResAxes, 'Energy (eV)'); ylabel(h.ResAxes, 'counts'); box(h.ResAxes, 'on'); grid(h.ResAxes, 'on');
 
             % ---- column 3: fit and apply ----
-            g3 = uigridlayout(g, [2 1], 'RowHeight', {'1x', 150}, 'Padding', [0 0 0 0], 'RowSpacing', 8);
+            g3 = uigridlayout(g, [2 1], 'RowHeight', {'1x', 128}, 'Padding', [0 0 0 0], 'RowSpacing', 6);
             g3.Layout.Row = 1; g3.Layout.Column = 3;
             p2 = uipanel(g3, 'Title', '2. Fit the Fermi edge', 'FontWeight', 'bold', 'ForegroundColor', C.title);
-            gp = uigridlayout(p2, [8 4], 'RowHeight', {22, 22, 22, 22, 186, 28, '1x'}, ...
-                'ColumnWidth', {78, '1x', '1x', 30}, 'Padding', [8 8 8 8], 'RowSpacing', 5);
+            gp = uigridlayout(p2, [7 4], 'RowHeight', {22, 22, 22, 24, 166, 24, '1x'}, ...
+                'ColumnWidth', {70, '1x', '1x', 26}, 'Padding', [6 6 6 6], 'RowSpacing', 4);
             lab = uilabel(gp, 'Text', 'Model'); lab.Layout.Row = 1; lab.Layout.Column = 1;
             m = fdd_models();
             h.Model = uidropdown(gp, 'Items', cellfun(@(a, b) [a ': ' b], {m.legacy}, {m.label}, 'UniformOutput', false), 'ItemsData', {m.key}, ...
@@ -364,15 +398,15 @@ classdef FDD_fit_app < handle
             h.Table = uitable(gp, 'Data', data, 'Tag', 'ParamTable', ...
                 'ColumnName', {'Parameter', 'Unit', 'Start', 'Fix', 'Fitted', '±1σ'}, ...
                 'ColumnEditable', [false false true true false false], ...
-                'ColumnWidth', {80, 66, 62, 34, 74, 62}, 'RowName', {});
+                'ColumnWidth', {74, 54, 50, 32, 62, 46}, 'RowName', {}, 'FontSize', 11);
             h.Table.Layout.Row = 5; h.Table.Layout.Column = [1 4];
-            h.Summary = uitextarea(gp, 'Editable', 'off', 'Tag', 'Summary', 'FontName', 'monospaced', ...
+            h.Summary = uitextarea(gp, 'Editable', 'off', 'Tag', 'Summary', 'FontName', 'monospaced', 'FontSize', 11, ...
                 'Value', {'No fit yet.'});
             h.Summary.Layout.Row = [6 7]; h.Summary.Layout.Column = [1 4];
 
             p3 = uipanel(g3, 'Title', '3. Apply to a copy of the data', 'FontWeight', 'bold', 'ForegroundColor', C.title);
-            ga = uigridlayout(p3, [4 3], 'RowHeight', {22, 22, 24, 24}, 'ColumnWidth', {120, '1x', '1x'}, ...
-                'Padding', [8 8 8 8], 'RowSpacing', 5);
+            ga = uigridlayout(p3, [4 3], 'RowHeight', {22, 22, 22, 22}, 'ColumnWidth', {96, '1x', '1x'}, ...
+                'Padding', [6 6 6 6], 'RowSpacing', 3);
             lab = uilabel(ga, 'Text', 'Output suffix'); lab.Layout.Row = 1; lab.Layout.Column = 1;
             h.Suffix = uieditfield(ga, 'text', 'Value', '_FDD', 'Tag', 'Suffix');
             h.Suffix.Layout.Row = 1; h.Suffix.Layout.Column = [2 3];
@@ -382,10 +416,10 @@ classdef FDD_fit_app < handle
             h.MinOcc.Layout.Row = 2; h.MinOcc.Layout.Column = 2;
             h.Offset = uibutton(ga, 'Text', 'Shift to E−E_F', 'Tag', 'Offset', ...
                 'ButtonPushedFcn', @(~, ~) app.guard(@() app.applyCorrection('offset', app.outputName('_EF'))));
-            h.Offset.Layout.Row = 3; h.Offset.Layout.Column = [1 2];
+            h.Offset.Layout.Row = 3; h.Offset.Layout.Column = 1;
             h.Renorm = uibutton(ga, 'Text', 'Shift + divide by FD', 'Tag', 'OffsetRenormalise', ...
                 'ButtonPushedFcn', @(~, ~) app.guard(@() app.applyCorrection('renormalise', app.outputName(app.Handles.Suffix.Value))));
-            h.Renorm.Layout.Row = 3; h.Renorm.Layout.Column = 3;
+            h.Renorm.Layout.Row = 3; h.Renorm.Layout.Column = [2 3];
             h.MultT = uieditfield(ga, 'numeric', 'Value', 10, 'Limits', [0.01 5000], 'Tag', 'MultiplyT', ...
                 'ValueDisplayFormat', '%.4g K');
             h.MultT.Layout.Row = 4; h.MultT.Layout.Column = 1;
@@ -393,8 +427,14 @@ classdef FDD_fit_app < handle
                 'ButtonPushedFcn', @(~, ~) app.guard(@() app.multiplyFD(app.Handles.MultT.Value, app.outputName('_xFDD'))));
             h.Mult.Layout.Row = 4; h.Mult.Layout.Column = [2 3];
 
-            h.Status = uilabel(g, 'Text', 'Ready.', 'Tag', 'Status', 'FontColor', [0.25 0.25 0.25]);
-            h.Status.Layout.Row = 2; h.Status.Layout.Column = [1 3];
+            % Status bar: fit-state lamp + state word (Idle / Fitting… / Done /
+            % Failed), then the last message.
+            gs = uigridlayout(g, [1 3], 'ColumnWidth', {14, 70, '1x'}, 'Padding', [2 0 2 0], 'ColumnSpacing', 6);
+            gs.Layout.Row = 2; gs.Layout.Column = [1 3];
+            h.StatusLamp = uilamp(gs, 'Tag', 'FitStatusLamp', 'Color', app.StatusColors(1, :));
+            h.StatusState = uilabel(gs, 'Text', 'Idle', 'Tag', 'FitStatus', 'FontWeight', 'bold', ...
+                'Tooltip', 'Fit status: Idle, Fitting…, Done or Failed');
+            h.Status = uilabel(gs, 'Text', 'Ready.', 'Tag', 'Status', 'FontColor', [0.25 0.25 0.25]);
 
             app.Handles = h;
             f.WindowButtonMotionFcn = @(~, ~) app.onDragMove();
@@ -539,6 +579,7 @@ classdef FDD_fit_app < handle
             app.Result = [];
             app.Handles.Table.Data(:, 5:6) = {NaN};
             app.Handles.Summary.Value = {'No fit yet.'};
+            app.setFitState('Idle');
         end
 
         function name = outputName(app, suffix)
@@ -616,6 +657,45 @@ classdef FDD_fit_app < handle
 
         function status(app, msg)
             app.Handles.Status.Text = msg;
+        end
+
+        function setFitState(app, state)
+            k = find(strcmp(app.StatusStates, state), 1);
+            app.FitState = state;
+            app.Handles.StatusLamp.Color = app.StatusColors(k, :);
+            app.Handles.StatusState.Text = state;
+            drawnow limitrate;
+        end
+
+        function endBusy(app)
+            if isvalid(app) && ~isempty(app.UIFigure) && isvalid(app.UIFigure)
+                app.Handles.FitButton.Enable = 'on';
+                app.UIFigure.Pointer = 'arrow';
+            end
+        end
+
+        function applyInfoTemperature(app, data)
+            % Use data.info.temperature (K), as written by the DLS i05, ALBA and
+            % kPEEM loaders, as the Temperature start value. The default model
+            % (Mod 6) holds T at this value; it is also copied to the
+            % Multiply-by-FD temperature. Only called when new data are
+            % selected, so a typed value is kept until then; data without a
+            % usable value leave the current entries unchanged.
+            T = fdd_info_temperature(data);
+            if isempty(T)
+                app.TemperatureSource = '';
+                return
+            end
+            app.TemperatureSource = 'info.temperature';
+            app.Handles.Table.Data{4, 3} = T;
+            app.Handles.MultT.Value = min(max(T, app.Handles.MultT.Limits(1)), app.Handles.MultT.Limits(2));
+            m = fdd_models(app.Handles.Model.Value);
+            if m.free(4) && ~app.Handles.Table.Data{4, 4}
+                held = 'start value only: this model fits T';
+            else
+                held = 'held fixed in the fit';
+            end
+            app.status(sprintf('T = %.4g K read from %s.info.temperature (%s).', T, app.DataName, held));
         end
     end
 end

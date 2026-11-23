@@ -62,7 +62,8 @@ assertSuccess(results);
 `fdd_synthetic`), parameter recovery, error identifiers and corrections of struct and
 `OxA_CUT`/`OxA_MAP` copies. `TestFDDGui` builds a hidden `FDD_fit_app` and drives it
 through its public methods with `fddtest_*` base-workspace fixtures that it removes
-afterwards. `fdd_recovery_table` prints the fitted-vs-true table quoted in
+afterwards, including `info.temperature` autofill, the fit-status lamp and the window size.
+The FDD code is in `GUI/FDD/`; the suites add that folder themselves. `fdd_recovery_table` prints the fitted-vs-true table quoted in
 `doc/FDD_improvement_log.md`.
 
 Report the executed suite, MATLAB release, passed/failed/incomplete counts, and

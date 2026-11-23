@@ -2,7 +2,7 @@
 
 > Historical review record (23 November 2026). The reviewed program `FDD_new.mlapp` /
 > `FDD_new_exported.m` is **not** part of this repository; line numbers refer to that export.
-> The upgrade is maintained here as `GUI/` (`FDD_fit_app` and `fdd_*`);
+> The upgrade is maintained here in `GUI/FDD/` (`FDD_fit_app` and `fdd_*`);
 > see the [user guide](FDD_user_guide.md), [improvement log](FDD_improvement_log.md) and the
 > [`ox-arpes-fdd-fit` skill](../AI_skills/ox-arpes-fdd-fit/SKILL.md).
 

@@ -1,6 +1,6 @@
 # FDD: Fermi-edge fitting and Fermi-Dirac correction
 
-Code: `GUI/` (`FDD_fit_app.m` and `fdd_*.m`). Upgrade of the
+Code: `GUI/FDD/` (`FDD_fit_app.m` and the `fdd_*.m` fitting functions). Upgrade of the
 standalone `FDD_new.mlapp` / `FDD_new_exported.m` (Cheng Peng, 2023), made on 23 November
 2026 following the yulinARPES `AI_skills/improve-scientific-guis` workflow; the original
 program is not part of this repository. Review: [FDD_review.md](FDD_review.md); change record:
@@ -16,14 +16,25 @@ Optimization or Image Processing Toolbox. `PlotSlices` (yulinARPES) is optional.
 ## Launch
 
 ```matlab
-addpath(fullfile(root,'GUI'))
-app = FDD_fit_app;            % lists cut/map variables from the base workspace
+addpath(fullfile(root,'GUI','FDD'))
+app = FDD_fit_app;            % lists cut/map variables from the base workspace (1088 x 624 window)
 ```
 
 1. **Data**: choose a cut or map; set the angle window (`x range`), for maps also
    `y`, and the energy range, or drag a rectangle on the preview. Press **Extract EDC**.
-2. **Fit**: choose a model, enter the measured sample temperature in the
-   `Temperature` row (Start column) and press **Fit**. Start values can be estimated with
+   If the selected variable has a finite, positive `info.temperature` (K; set by the DLS
+   i05, ALBA LOREA and DLS i09 kPEEM loaders, or by hand), it is copied into the
+   `Temperature` Start value and the **Multiply by FD** temperature, and the message bar
+   names the source. A logged vector of readings gives their mean. Data without it leave
+   the current values unchanged. The copy happens only when a variable is selected, so a
+   value you type afterwards is kept for every refit until you select data again.
+2. **Fit**: choose a model, check or enter the measured sample temperature in the
+   `Temperature` row (Start column) and press **Fit**. The default model (Mod 6) holds T
+   at that value; free-T models use it only as a start value unless **Fix** is ticked.
+   While the fit runs, the lamp at the bottom left turns amber and reads **Fitting…**,
+   the **Fit** button is disabled and the pointer is busy; afterwards it reads **Done**
+   (green) or **Failed** (red, with the error in the message bar). It returns to
+   **Idle** when new data or a new EDC invalidate the fit. Start values can be estimated with
    **Auto start values**; the **Fix** box holds a single parameter at its Start value.
    The table shows the fitted values and 1σ errors; the summary shows χ²/dof, R²,
    convergence and warnings; the lower plot shows residuals.
@@ -57,6 +68,7 @@ given as FWHM (σ = FWHM / 2√(2 ln 2)). Energies in eV, T in K. E − E_F < 0 
 | `out = fdd_multiply_fd(data, T, 'Resolution', fwhm)` | multiply a copy by FD |
 | `I = fdd_model(E, p)`, `f = fdd_fermi(E, EF, T)` | model functions |
 | `fdd_models()` | model presets and legacy aliases |
+| `fdd_info_temperature` | `T = fdd_info_temperature(data)`: finite positive `data.info.temperature` (K) or `[]` |
 | `FDD_fit_app` methods | `selectData`, `setWindows`, `extractEDC`, `setModel`, `setFitWindow`, `setStart`, `setFixed`, `fit`, `applyCorrection`, `multiplyFD`, `getState`, `exportFigure` (see `help FDD_fit_app`) |
 
 Example:
@@ -75,7 +87,7 @@ cut_corr = fdd_correct_data(sample_cut, R.params, 'Renormalise', true, 'Backgrou
 
 ```matlab
 results = runtests({fullfile(root,'tests','TestFDDCore.m'), ...   % 16 numerical/correction tests
-                    fullfile(root,'tests','TestFDDGui.m')});      % 6 GUI/API tests (hidden app)
+                    fullfile(root,'tests','TestFDDGui.m')});      % 9 GUI/API tests (hidden app)
 assertSuccess(results);
 addpath(fullfile(root,'tests')); fdd_recovery_table   % fitted-vs-true table for all six models
 ```

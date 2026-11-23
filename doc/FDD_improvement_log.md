@@ -2,7 +2,7 @@
 
 > Historical implementation/validation record. Recorded tests describe the dated revision,
 > not the current live session. On 23 November 2026 the upgrade was added to OX_ARPES:
-> code `GUI/`, tests `tests/TestFDDCore.m` and `tests/TestFDDGui.m`
+> code `GUI/FDD/` (since the GUI feedback below; first `GUI/`), tests `tests/TestFDDCore.m` and `tests/TestFDDGui.m`
 > (renamed from `test_fdd_core`/`test_fdd_gui`), figures in `doc/`. Paths below have been updated
 > to those locations; see [Repository integration](#repository-integration--23-november-2026).
 >
@@ -173,7 +173,7 @@ Original-to-upgrade mapping:
 
 ## Final state and launch path
 
-`addpath(fullfile(root,'GUI')); app = FDD_fit_app;`. Scripted use:
+`addpath(fullfile(root,'GUI','FDD')); app = FDD_fit_app;`. Scripted use:
 `R = fdd_fit_edc(E, I, 'Temperature', T)` (see [FDD_user_guide.md](FDD_user_guide.md)).
 Tests: `runtests({fullfile(root,'tests','TestFDDCore.m'), fullfile(root,'tests','TestFDDGui.m')})`.
 
@@ -197,7 +197,7 @@ Changes are left uncommitted in the working tree for review.
 
 | Item | Location |
 |---|---|
-| App and backend (11 files) | `GUI/` (`FDD_fit_app.m`, `fdd_*.m`), next to `OxArpes_DataProcess.m` and its `ox_data_process*` backend; picked up by `addpath(fullfile(root,'GUI'))` as in the README. First placed in `GUI/`, moved to `GUI/` at Calvin's request before the commit |
+| App and backend (11 files) | `GUI/` (`FDD_fit_app.m`, `fdd_*.m`), next to `OxArpes_DataProcess.m` and its `ox_data_process*` backend; picked up by `addpath(fullfile(root,'GUI'))` as in the README. First placed in `DataAnalysis/fermi_level/FDD/`, moved to `GUI/` at Calvin's request before the commit (since the GUI feedback: `GUI/FDD/`) |
 | Tests | `tests/TestFDDCore.m`, `tests/TestFDDGui.m`, helpers `tests/fdd_synthetic.m`, `tests/fdd_recovery_table.m`; path set from the test file location; discovered by `tests/run_tests` |
 | Docs | `doc/FDD_review.md`, `doc/FDD_improvement_log.md` (this file), `doc/FDD_user_guide.md`, `doc/FDD_skill_session_summary.md`, five `doc/fdd_*.png` (about 0.6 MB in total) |
 | Operation skill | `AI_skills/ox-arpes-fdd-fit/SKILL.md` (renamed from `fdd-fermi-fit` to match the `ox-arpes-*` naming) |
@@ -261,3 +261,31 @@ Toolbox not installed) and `TestDataProcess/medianRemovesImpulseAlongChosenAxis`
 `medfilt1`). They were not changed. On this Linux host, GUI suites that open `uialert`
 need `LD_PRELOAD=/lib/x86_64-linux-gnu/libfreetype.so.6` for `MATLABWindow`; without it
 `TestDataProcess` hangs in batch mode.
+
+## GUI feedback — 23 November 2026
+
+Request (Calvin): "1. please compact the width and height of the window to around 80% of what
+they are now 2. the program can automatically read data.info.temperature, if this temperature
+value exist, set it the the fixed temperature in fitting. 3. add the indicator of the status
+(let the user know if the fitting is in process) 4. organise the related files in GUI folder.
+put all fitting related code into a folder". Base: OX_ARPES `e593dba`.
+
+| # | Feedback | Change |
+|---|---|---|
+| G1 | Window ~80 % | Figure 1360 × 780 → **1088 × 624** px (exactly 80 % each way). Side columns 330/410 → 272/336 px, data list 130 → 92 px, parameter table 186 → 166 px, apply panel 150 → 128 px, tighter padding/spacing; table and summary use 11 pt. Short labels (`x`, `E (eV)`, `y scale`, `PlotSlices…` with tooltip) so nothing is clipped; checked in a fresh `exportapp` screenshot (`doc/fdd_upgraded_gui.png`, replaced). |
+| G2 | Use `data.info.temperature` | New `fdd_info_temperature(data)` reads `data.info.temperature` from an OX object (`info` property) or struct (`info` field) — the field written by `load_DLS_io5_nano`, `load_ALBA_LOREA` and `load_DLS_io9_kPEEM` and used by `OxArpes_DataViewer_2D/3D`. It returns the value if numeric, finite and > 0 (mean of finite readings for a logged vector), else `[]`. `selectData` copies it into the Temperature **Start** value, which the default model `rcfd_lin_bg_T` (Mod 6) holds fixed, and into the Multiply-by-FD temperature; the message bar names the source and says whether T is held. Only selecting data triggers it, so a typed value survives refits and is replaced only by new data with a valid temperature; data without one keep the current value. `getState().temperatureSource` is `'info.temperature'` or `''`. Free-T models keep T free (start value only) unless the user ticks Fix. Other fields such as SSRL's `temperature_sample_stage` are not read. |
+| G3 | Fit status indicator | Status bar = lamp + state word + message. `fit()` sets **Fitting…** (amber), disables the Fit button, sets the busy pointer and calls `drawnow` before the solver; an `onCleanup` re-enables the button/pointer however the fit ends; then **Done** (green) or **Failed** (red, error also in the message bar via `guard`). `clearFit` (new data/EDC) resets to **Idle** (grey). `getState().fitStatus` exposes the state. The fit body moved to private `runFit`; behaviour is otherwise unchanged. |
+| G4 | Organise files | `GUI/FDD_fit_app.m` and the ten `GUI/fdd_*.m` moved with `git mv` to **`GUI/FDD/`**, plus the new `fdd_info_temperature.m` (12 files). The README adds `GUI` non-recursively, so `GUI/FDD` is added explicitly: README, user guide, skill and tests now use `addpath(fullfile(root,'GUI','FDD'))`; the saved `pathdef.m` gained `/opt/matlab-packages/OX_ARPES/GUI/FDD` after `GUI` (backup `/workspace/pathdef_backup_20261123_fddfolder.m`). Tests stay in `tests/`, figures in `doc/`. `which -all` finds one `FDD_fit_app` and one of each `fdd_*`, all in `GUI/FDD/`. |
+
+**Validation** (MATLAB R2023a Update 8, `matlab -batch` as the normal user): Code Analyzer
+0 notices in 16 files (`GUI/FDD/*.m`, `tests/TestFDD*.m`, `tests/fdd_*.m`). FDD suites
+**25 of 25 passed** (16 core, 9 GUI). Three new GUI tests: `testInfoTemperatureFillsHeldT`
+(struct and `OxA_CUT` sources, typed value kept for data without a temperature and across
+refits, NaN/negative/text/vector cases, held T used in the fit), `testFitStatusIndicator`
+(Idle → Done, Failed on a too-small window with the button re-enabled and arrow pointer,
+Idle after a new EDC) and `testCompactWindowSize`. The amber Fitting… state lasts only as long
+as the synchronous fit (typically well under a second on synthetic edges), so it is checked by
+code path rather than by screenshot.
+Full `tests/` suite: 82 tests, 79 passed, 2 failed, 1 filtered — the same three pre-existing,
+non-FDD cases recorded in the second review (`singletonThreeDimensionalEidUsesEnergyAxis`,
+`fuzzyClusteringIsCallable`, `medianRemovesImpulseAlongChosenAxis`).

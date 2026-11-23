@@ -8,7 +8,7 @@
 
 Applied the external yulinARPES `improve-scientific-guis` workflow (yulinARPES `56f394e`) to
 the standalone Fermi-edge fitting program `FDD_new.mlapp` (not part of this repository), then
-added the upgrade to OX_ARPES as `GUI/`. Review:
+added the upgrade to OX_ARPES (now `GUI/FDD/`). Review:
 [FDD_review.md](FDD_review.md). Implementation and evidence:
 [FDD_improvement_log.md](FDD_improvement_log.md). User guide:
 [FDD_user_guide.md](FDD_user_guide.md).
@@ -48,6 +48,14 @@ rejection, no division by zero occupation, stale fit cleared in the GUI, validat
 names, background note in the docs) were fixed; see
 [FDD_improvement_log.md](FDD_improvement_log.md#second-review-before-commit--23-november-2026).
 Full suite: 58 of 61 pass; the 3 others fail or are filtered identically on the previous commit.
+
+## GUI feedback — 23 November 2026
+
+Calvin's feedback: window compacted to 1088 × 624 (80 % of 1360 × 780); a finite
+`data.info.temperature` becomes the held fit temperature; a fit-status lamp
+(Idle / Fitting… / Done / Failed) with the Fit button disabled while fitting; the app and
+all `fdd_*` code moved to `GUI/FDD/`. FDD suites: 25 of 25 pass. See
+[FDD_improvement_log.md](FDD_improvement_log.md#gui-feedback--23-november-2026).
 
 ## Limitations
 

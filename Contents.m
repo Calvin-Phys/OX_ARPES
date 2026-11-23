@@ -30,6 +30,6 @@
 %
 % Apps
 %   OxArpes_DataProcess - Crop/smooth/normalise/reduce workspace data.
-%   FDD_fit_app         - Fermi-edge fitting and Fermi-Dirac correction.
+%   FDD_fit_app         - Fermi-edge fitting and Fermi-Dirac correction (GUI/FDD).
 %
 % Run synthetic regression tests with tests/run_tests.

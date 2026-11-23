@@ -1,7 +1,7 @@
 function fdd_recovery_table()
 %FDD_RECOVERY_TABLE  Print fitted vs true parameters for each model (report table).
 here = fileparts(mfilename('fullpath')); root = fileparts(here);
-addpath(fullfile(root, 'GUI'), here);
+addpath(fullfile(root, 'GUI', 'FDD'), here);
 truth = struct('EF', 0.0123, 'Temperature', 30, 'Resolution', 0.015, 'Amplitude', 1000, 'Slope', -800, 'Background', 40);
 cases = {'fd', struct('Resolution', 0, 'Slope', 0, 'Background', 0); 'fd_bg', struct('Resolution', 0, 'Slope', 0); ...
     'fd_lin_bg', struct('Resolution', 0); 'rcfd', struct('Slope', 0, 'Background', 0); 'rcfd_lin_bg', struct(); 'rcfd_lin_bg_T', struct()};

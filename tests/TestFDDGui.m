@@ -8,7 +8,7 @@ end
 function setupOnce(tc)
 here = fileparts(mfilename('fullpath'));
 root = fileparts(here);
-tc.TestData.oldPath = addpath(fullfile(root, 'GUI'), fullfile(root, 'DataType'), here);
+tc.TestData.oldPath = addpath(fullfile(root, 'GUI', 'FDD'), fullfile(root, 'DataType'), here);
 x = -12:0.25:12; y = -3:1:3;
 truth = struct('Amplitude', 900, 'Slope', -600, 'EF', 16.8317, 'Temperature', 30, ...
     'Resolution', 0.015, 'Background', 35);
@@ -125,4 +125,73 @@ tc.verifyEqual(summary.Value, {'No fit yet.'});
 tc.verifyEqual(s.table.Start(4), 30);                      % start values are kept
 tc.verifyError(@() app.applyCorrection('offset', 'x_out'), 'FDD:NoFit');
 tc.verifyError(@() app.selectData('a''); disp(1); %'), 'FDD:UnknownVariable');  % not evaluated
+end
+
+function testInfoTemperatureFillsHeldT(tc)
+% GUI feedback 23 Nov: a finite data.info.temperature becomes the held T.
+app = tc.TestData.app;
+cut = tc.TestData.cut; cut.info = struct('temperature', 30);
+assignin('base', 'fddtest_cutT', cut);
+nan2 = cut; nan2.info.temperature = NaN;
+assignin('base', 'fddtest_cutTnan', nan2);
+cleanup = onCleanup(@() evalin('base', 'clear fddtest_cutT fddtest_cutTnan fddtest_oxcut'));
+app.setModel('Mod 6');
+app.setStart('Temperature', 12);
+app.selectData('fddtest_cut');                         % no info: typed value kept
+s = app.getState();
+tc.verifyEqual(s.table.Start(4), 12);
+tc.verifyEqual(s.temperatureSource, '');
+app.selectData('fddtest_cutT');                        % info.temperature -> Start T
+s = app.getState();
+tc.verifyEqual(s.table.Start(4), 30);
+tc.verifyEqual(s.temperatureSource, 'info.temperature');
+tc.verifyEqual(findobj(app.UIFigure, 'Tag', 'MultiplyT').Value, 30);
+R = app.fit();
+tc.verifyFalse(R.free(4));
+tc.verifyEqual(R.params.Temperature, 30);
+app.setStart('Temperature', 25);                       % user edit survives a refit
+app.extractEDC(); app.fit();
+tc.verifyEqual(app.Result.params.Temperature, 25);
+app.selectData('fddtest_cutTnan');                     % NaN is ignored
+tc.verifyEqual(app.getState().table.Start(4), 25);
+ox = OxA_CUT(cut.x, cut.y, cut.value);                 % OX object with info property
+ox.info.temperature = [6.5 7.5];                       % logged readings -> mean
+assignin('base', 'fddtest_oxcut', ox);
+app.selectData('fddtest_oxcut');
+tc.verifyEqual(app.getState().table.Start(4), 7, 'AbsTol', 1e-12);
+tc.verifyEmpty(fdd_info_temperature(struct('info', struct('temperature', -1))));
+tc.verifyEmpty(fdd_info_temperature(struct('info', struct('temperature', 'warm'))));
+tc.verifyEmpty(fdd_info_temperature(magic(3)));
+clear cleanup
+end
+
+function testFitStatusIndicator(tc)
+% GUI feedback 23 Nov: the status lamp shows Idle / Done / Failed and the Fit
+% button is enabled again after the fit.
+app = tc.TestData.app;
+lamp = findobj(app.UIFigure, 'Tag', 'FitStatusLamp');
+word = findobj(app.UIFigure, 'Tag', 'FitStatus');
+btn = findobj(app.UIFigure, 'Tag', 'Fit');
+tc.verifyEqual(app.getState().fitStatus, 'Idle');
+tc.verifyEqual(word.Text, 'Idle');
+app.selectData('fddtest_cut');
+app.setModel('Mod 6'); app.setStart('Temperature', 30);
+app.fit();
+tc.verifyEqual(app.getState().fitStatus, 'Done');
+tc.verifyEqual(word.Text, 'Done');
+tc.verifyEqual(lamp.Color, [0.20 0.70 0.25], 'AbsTol', 1e-12);
+tc.verifyEqual(char(btn.Enable), 'on');
+app.setFitWindow([16.0 16.001]);                       % too few points -> fit fails
+tc.verifyError(@() app.fit(), 'FDD:TooFewPoints');
+tc.verifyEqual(word.Text, 'Failed');
+tc.verifyEqual(char(btn.Enable), 'on');
+tc.verifyEqual(char(app.UIFigure.Pointer), 'arrow');
+app.extractEDC();                                      % new EDC invalidates -> Idle
+tc.verifyEqual(word.Text, 'Idle');
+end
+
+function testCompactWindowSize(tc)
+% GUI feedback 23 Nov: window is ~80 % of the former 1360 x 780.
+pos = tc.TestData.app.UIFigure.Position;
+tc.verifyEqual(pos(3:4), [1088 624]);
 end
