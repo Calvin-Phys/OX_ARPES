@@ -28,6 +28,13 @@ Use an isolated MATLAB verification process when protecting an active user's
 workspace and app instances. Other suites cover core data, analysis/loading,
 and synthetic PSI ADRESS format/axis contracts.
 
+`TestNXmpes.m` covers NXmpes import/export, physical HDF5 dimension order,
+1D--4D classes and singleton dimensions, typed metadata, energy conventions,
+multi-entry dispatch and protection against incomplete writes. It generates
+independent synthetic HDF5 layouts as well as round-trip files. The supplied
+Python example and measured NeXus file are optional local acceptance inputs;
+the reusable suite does not depend on them. See [the NXmpes guide](../doc/NXmpes.md).
+
 Report the executed suite, MATLAB release, passed/failed/incomplete counts, and
 warnings. An old review log is not evidence that the current suite passed.
 Synthetic checks do not establish beamline calibration or all-release GUI

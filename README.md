@@ -44,6 +44,24 @@ array for multiple files):
 data = loader_UI();
 ```
 
+## NeXus NXmpes exchange
+
+Export scalar OX 1D--4D objects, or a structure of named objects, and import
+them through the normal loader:
+
+```matlab
+exportReport = save_nxmpes('scan.nxs',data,'SignalUnits','counts');
+[restored,report] = load_arpes('scan.nxs');
+selected = load_arpes('session.nxs','Entry','entry_1');
+```
+
+Arrays, coordinates, labels and portable `info` metadata are preserved without
+regridding. Existing files require explicit `'Overwrite',true`. NXmpes and
+rectilinear NXmpes_arpes input, plus ARPES Explorer exports, are recognized
+before facility-specific readers. Missing acquisition metadata are reported;
+export does not claim full NXDL validation. See the [NXmpes guide](doc/NXmpes.md)
+for metadata mappings, energy conventions, options and compatibility limits.
+
 ## Data processing app
 
 The maintained `OxArpes_DataProcess.m` app crops, smooths, differentiates, normalises,
@@ -127,6 +145,7 @@ CI matrix. A recent MATLAB release is recommended.
 
 - Scienta SES/PEAK text, ZIP, and IBW data, including Solaris spin ZIP data
 - Diamond Light Source i05 and i09 NeXus data
+- NeXus NXmpes/NXmpes_arpes rectilinear data and ARPES Explorer NeXus exports
 - PSI ULTRA and ADRESS HDF5 data
 - Elettra Spectromicroscopy HDF5 data
 - Soleil Cassiopee text exports (experimental readers under `DataLoader/test`)

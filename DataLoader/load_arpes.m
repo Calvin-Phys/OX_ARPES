@@ -6,11 +6,15 @@ function [data, report] = load_arpes(filePath, varargin)
 %   DATA = LOAD_ARPES(FILEPATH,'Format',LOADER) selects an approved reader
 %   explicitly. Unsupported but readable scan types return [] with a warning;
 %   file, schema, and reader failures raise an error with their cause attached.
+%   NXmpes accepts 'Entry' and 'DataGroup' selectors. REPORT.validated checks
+%   OX data contracts; REPORT.nexus.validation describes NXDL validation.
 
     parser = inputParser;
     addRequired(parser, 'filePath', @(x) ischar(x) || (isstring(x) && isscalar(x)));
     addParameter(parser, 'Format', 'auto', @(x) ischar(x) || (isstring(x) && isscalar(x)));
     addParameter(parser, 'Validate', true, @(x) islogical(x) && isscalar(x));
+    addParameter(parser, 'Entry', '', @(x) ischar(x) || (isstring(x) && isscalar(x)));
+    addParameter(parser, 'DataGroup', '', @(x) ischar(x) || (isstring(x) && isscalar(x)));
     parse(parser, filePath, varargin{:});
 
     filePath = char(parser.Results.filePath);
@@ -36,7 +40,7 @@ function [data, report] = load_arpes(filePath, varargin)
             'load_PSI_ULTRA','load_PSI_ADRESS','load_ALS_h5','load_ALBA_LOREA', ...
             'load_DLS_io5_nano','load_DLS_io5_HR','load_DLS_io9_kPEEM', ...
             'load_DLS_io9_HAXPES','load_scienta_IBW','load_Specs_itx', ...
-            'load_ALS_Maestro_fits','load_ALBA_krx','load_ALBA_krx_S'};
+            'load_ALS_Maestro_fits','load_ALBA_krx','load_ALBA_krx_S','load_nxmpes'};
         match = find(strcmpi(requestedFormat,supportedLoaders),1);
         if isempty(match)
             error('OxArpes:UnknownLoader', ...
@@ -47,7 +51,13 @@ function [data, report] = load_arpes(filePath, varargin)
     end
 
     try
-        if strcmp(loaderName, 'load_mat_file')
+        if strcmp(loaderName, 'load_nxmpes')
+            [data, report.nexus] = load_nxmpes(filePath, ...
+                'Entry', parser.Results.Entry, 'DataGroup', parser.Results.DataGroup);
+            report.warnings = report.nexus.warnings;
+        elseif ~isempty(parser.Results.Entry) || ~isempty(parser.Results.DataGroup)
+            error('OxArpes:InvalidLoaderOptions','Entry and DataGroup apply only to load_nxmpes.');
+        elseif strcmp(loaderName, 'load_mat_file')
             data = load(filePath);
         elseif numel(candidates) == 1
             data = feval(loaderName, filePath);
@@ -72,7 +82,9 @@ function [data, report] = load_arpes(filePath, varargin)
         return
     end
 
-    if ~strcmp(loaderName, 'load_mat_file')
+    if ~ismember(loaderName, {'load_mat_file','load_nxmpes'})
+        % NeXus exchange restores the stored metadata exactly, including
+        % legacy aliases; facility readers retain boundary normalization.
         data = normalise_loaded_metadata(data);
     end
 
@@ -112,6 +124,12 @@ end
 function [loaderName, candidates] = detect_loader(filePath, ext)
 %DETECT_LOADER Select a reader using the file extension and format markers.
     candidates = {};
+    if ismember(ext,{'.nxs','.nx5','.nexus','.h5','.hdf5','.hdf'}) && ...
+            ~isempty(nxmpes_io('entries',filePath))
+        loaderName = 'load_nxmpes';
+        candidates = {loaderName};
+        return
+    end
     switch ext
         case '.mat'
             loaderName = 'load_mat_file';
