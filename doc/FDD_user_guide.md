@@ -20,6 +20,9 @@ addpath(fullfile(root,'GUI','FDD'))
 app = FDD_fit_app;            % lists cut/map variables from the base workspace (1088 x 624 window)
 ```
 
+From the yulinARPES browsers: **Analyze → Fit spectra → Fit Fermi-level (new)** (v5) or
+**Tools → Fit Fermi-level (new)** (legacy v32), below the original Fit Fermi level entry.
+
 1. **Data**: choose a cut or map; set the angle window (`x range`), for maps also
    `y`, and the energy range, or drag a rectangle on the preview. Press **Extract EDC**.
    If the selected variable has a finite, positive `info.temperature` (K; set by the DLS
