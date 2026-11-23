@@ -57,6 +57,15 @@ Calvin's feedback: window compacted to 1088 × 624 (80 % of 1360 × 780); a fini
 all `fdd_*` code moved to `GUI/FDD/`. FDD suites: 25 of 25 pass. See
 [FDD_improvement_log.md](FDD_improvement_log.md#gui-feedback--23-november-2026).
 
+## Browser menus and publication — 23 November 2026
+
+yulinARPES `925a1a0` adds **Fit Fermi-level (new)** (tag `FitFermiLevelNew`, calls
+`FDD_fit_app` with no arguments) below the original Fermi-level entry in browser v5
+(Analyze → Fit spectra) and legacy v32 (Tools). yulinARPES `Manual/Manual_for_AI.md` and
+`AI_skills/SKILLS_MAP.md` route Fermi-edge fitting to this repository's
+[`ox-arpes-fdd-fit`](../AI_skills/ox-arpes-fdd-fit/SKILL.md) skill. The two repositories
+were committed to be published together, because the menu item needs `GUI/FDD`.
+
 ## Limitations
 
 No measured gold edge has been fitted. The preview drag-rectangle, the overwrite

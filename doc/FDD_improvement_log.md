@@ -289,3 +289,15 @@ code path rather than by screenshot.
 Full `tests/` suite: 82 tests, 79 passed, 2 failed, 1 filtered — the same three pre-existing,
 non-FDD cases recorded in the second review (`singletonThreeDimensionalEidUsesEnergyAxis`,
 `fuzzyClusteringIsCallable`, `medianRemovesImpulseAlongChosenAxis`).
+
+## Browser menu integration — 23 November 2026
+
+Request: "please add this function as "Fit Fermi-level (new)" to the menus of
+"data_browser_demo_v32→Tools" and "ARPES_data_browser_v5→Analyze→Fit spectra" under
+"Fit Fermi Level"". Implemented in yulinARPES `925a1a0` (both items tag `FitFermiLevelNew`,
+callback `@(~,~)FDD_fit_app`, directly below the unchanged `FitFermiSurface` entry); the
+user guide and skill name the routes. Checked in R2023a with GUI Layout Toolbox on the
+path for that session only: each real callback opened one 1088 × 624 `FDD_fit_app`;
+browser comparison menu section "all 45 menu dispatch targets"; `test_stable_entry_points`
+5 of 5. Details: yulinARPES `doc/ARPES_data_browser_v5_log.md`. The yulinARPES AI manual and
+skills map now route Fermi-edge fitting here.

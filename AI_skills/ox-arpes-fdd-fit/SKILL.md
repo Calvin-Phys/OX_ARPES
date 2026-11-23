@@ -36,7 +36,8 @@ while another agent uses the shared session.
 4. **GUI.** `app = FDD_fit_app` drives the same functions; the public methods
    (`selectData`, `setWindows`, `extractEDC`, `setModel`, `setStart`, `fit`,
    `applyCorrection(mode, outName, 'Overwrite', false)`, `getState`) let an agent
-   operate it without clicking. `applyCorrection` refuses to overwrite an existing
+   operate it without clicking. Users can also open it from the yulinARPES browsers:
+   **Analyze → Fit spectra → Fit Fermi-level (new)** (v5) or **Tools → Fit Fermi-level (new)** (v32). `applyCorrection` refuses to overwrite an existing
    variable unless `'Overwrite', true`. `selectData` copies a finite
    `info.temperature` into the Temperature start value (held by the default model);
    `getState()` reports it in `temperatureSource` and the fit state in `fitStatus`
