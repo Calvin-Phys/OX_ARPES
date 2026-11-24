@@ -2,6 +2,7 @@ function DATA = load_ALS_Maestro_fits(file_path)
 %LOAD_ALS_MAESTRO_FITS Read ALS MAESTRO FITS scans as OX data objects.
 %   Interprets FITS keywords, dimensions, and axis calibration to construct
 %   the corresponding spectrum, map, or nanoARPES object and its metadata.
+%   For repeated cuts in a 'null' acquisition, warns and keeps only the first.
 
     % -------------------------------------------------------------------
     % get raw data
@@ -12,6 +13,14 @@ function DATA = load_ALS_Maestro_fits(file_path)
 
     keywords_binarytable = info.BinaryTable.Keywords;
     fitsdata = fitsread(file_path,'binarytable');
+
+    % Identify repeated cuts before treating multiple rows as a scan axis.
+    for ii = 1:size(keywords_primary,1)
+        if strcmp(keywords_primary{ii,1},'NM_0_0')
+            data_type = keywords_primary{ii,2};
+            break
+        end
+    end
 
     % -------------------------------------------------------------------
     % arpes data
@@ -49,6 +58,12 @@ function DATA = load_ALS_Maestro_fits(file_path)
         NL = size(fitsdata{1,num_col},1);
         if NL == 1
             VALUE = reshape(fitsdata{1,num_col},nx,ny);
+        elseif strcmp(data_type,'null')
+            warning('OxArpes:RepeatedCutsDiscarded', ...
+                ['FITS file "%s" contains %d repeated cuts. ' ...
+                 'Keeping the first cut and discarding %d later cut(s).'], ...
+                file_path,NL,NL-1);
+            VALUE = reshape(fitsdata{1,num_col}(1,:),nx,ny);
         else
             LL = round(fitsdata{1,2}',1);
             VALUE = reshape(fitsdata{1,num_col},NL,nx,ny);
@@ -77,14 +92,6 @@ function DATA = load_ALS_Maestro_fits(file_path)
     % -------------------------------------------------------------------
     % set parameters
     % -------------------------------------------------------------------
-    % check data type
-    for ii = 1:size(keywords_primary,1)
-        if strcmp(keywords_primary{ii,1},'NM_0_0')
-            data_type = keywords_primary{ii,2};
-            break
-        end
-    end
-
     switch data_type
         case 'null' % cut
             DATA = OxA_CUT(cXX,cYY,VALUE);
